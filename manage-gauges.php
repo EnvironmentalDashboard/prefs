@@ -1,0 +1,376 @@
+<?php
+// error_reporting(-1);
+// ini_set('display_errors', 'On');
+require '../includes/db.php';
+function gaugeURL($meter_id, $data_interval, $color, $bg, $height, $width, $font_family, $title, $title2, $border_radius, $rounding, $ver, $units, $start) {
+  $q = http_build_query(array(
+    'meter_id' => $meter_id,
+    'data_interval' => $data_interval,
+    'color' => $color,
+    'bg' => $bg,
+    'height' => $height,
+    'width' => $width,
+    'font_family' => $font_family,
+    'title' => $title,
+    'title2' => $title2,
+    'border_radius' => $border_radius,
+    'rounding' => $rounding,
+    'ver' => $ver,
+    'units' => $units,
+    'start' => $start
+  ));
+  return "http://104.131.103.232/oberlin/gauges/gauge.php?" . $q;
+}
+if (isset($_POST['edit'])) {
+  $q = array(
+    ':meter_id' => $_POST['edit-meter'],
+    ':data_interval' => $_POST['edit-interval'],
+    ':color' => $_POST['edit-color'],
+    ':bg' => $_POST['edit-bg'],
+    ':height' => $_POST['edit-height'],
+    ':width' => $_POST['edit-width'],
+    ':font_family' => $_POST['edit-fontfamily'],
+    ':title' => $_POST['edit-title'],
+    ':title2' => $_POST['edit-title2'],
+    ':border_radius' => $_POST['edit-borderradius'],
+    ':rounding' => $_POST['edit-rounding'],
+    ':ver' => $_POST['edit-radio'],
+    ':units' => $_POST['edit-units'],
+    ':start' => $_POST['edit-start'],
+    ':id' => $_POST['gauge-id']
+  );
+  $stmt = $db->prepare('UPDATE gauges SET meter_id = :meter_id, data_interval = :data_interval, color = :color, bg = :bg, height = :height, width = :width, font_family = :font_family, title = :title, title2 = :title2, border_radius = :border_radius, rounding = :rounding, ver = :ver, units = :units, start = :start WHERE id = :id');
+  $stmt->execute($q);
+  $stmt = $db->prepare('UPDATE meters SET num_using = num_using + 1 WHERE id = ?');
+  $stmt->execute(array($_POST['edit-meter']));
+  $stmt = $db->prepare('UPDATE meters SET num_using = num_using - 1 WHERE id = ? AND num_using != 0');
+  $stmt->execute(array($_POST['meter-id']));
+}
+
+if (isset($_POST['delete'])) {
+  $stmt = $db->prepare('UPDATE meters SET num_using = num_using - 1 WHERE id = ?');
+  $stmt->execute(array($_POST['meterid']));
+  $stmt = $db->prepare('DELETE FROM gauges WHERE id = ?');
+  $stmt->execute(array($_POST['gaugeid']));
+}
+
+$dropdown_html = '';
+$buildings = $db->query('SELECT * FROM buildings ORDER BY name ASC');
+foreach ($buildings->fetchAll() as $building) {
+  $dropdown_html .= "<optgroup label='{$building['name']}'>";
+  $stmt = $db->prepare('SELECT id, name FROM meters WHERE building_id = ?');
+  $stmt->execute(array($building['id']));
+  foreach($stmt->fetchAll() as $meter) {
+    $dropdown_html .= "<option value='{$meter['id']}'>{$meter['name']}</option>";
+  }
+  $dropdown_html .= '</optgroup>';
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags always come first -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Manage gauges</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/css/bootstrap.min.css" integrity="sha384-y3tfxAZXuh4HwSYylfB+J125MxIs6mR5FOHamPBG064zB+AFeWH94NdvaCBm8qnd" crossorigin="anonymous">
+  </head>
+  <body style="padding-top:5px">
+    <div class="modal fade" id="edit-modal">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <form action="" method="POST">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <h4 class="modal-title">Edit gauge</h4>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" value="" id="gauge-id" name="gauge-id">
+              <input type="hidden" value="" id="meter-id" name="meter-id">
+              <div class="form-group">
+                <label for="edit-meter">Meter</label>
+                <select style="width:100%" name="edit-meter" id="edit-meter" class="c-select">
+                  <?php echo $dropdown_html; ?>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="edit-interval">Data interval</label>
+                <input type="text" class="form-control" id="edit-interval" name="edit-interval" value="">
+              </div>
+              <div class="form-group">
+                <label for="edit-color">Color</label>
+                <input type="text" class="form-control" id="edit-color" name="edit-color" value="">
+              </div>
+              <div class="form-group">
+                <label for="edit-bg">Background</label>
+                <input type="text" class="form-control" id="edit-bg" name="edit-bg" value="">
+              </div>
+              <div class="form-group">
+                <label for="edit-height">Height</label>
+                <input type="text" class="form-control" id="edit-height" name="edit-height" value="">
+              </div>
+              <div class="form-group">
+                <label for="edit-width">Width</label>
+                <input type="text" class="form-control" id="edit-width" name="edit-width" value="">
+              </div>
+              <div class="form-group">
+                <label for="edit-fontfamily">Font family</label>
+                <input type="text" class="form-control" id="edit-fontfamily" name="edit-fontfamily" value="">
+              </div>
+              <div class="form-group">
+                <label for="edit-title">Title</label>
+                <input type="text" class="form-control" id="edit-title" name="edit-title" value="">
+              </div>
+              <div class="form-group">
+                <label for="edit-title2">Title line 2</label>
+                <input type="text" class="form-control" id="edit-title2" name="edit-title2" value="">
+              </div>
+              <div class="form-group">
+                <label for="edit-borderradius">Border radius</label>
+                <input type="text" class="form-control" id="edit-borderradius" name="edit-borderradius" value="">
+              </div>
+              <div class="form-group">
+                <label for="edit-rounding">Rounding precision</label>
+                <input type="text" class="form-control" id="edit-rounding" name="edit-rounding" value="">
+              </div>
+              <div class="form-group">
+                <label for="edit-units">Units</label>
+                <input type="text" class="form-control" id="edit-units" name="edit-units" value="">
+              </div>
+              <div class="form-group">
+                <label for="edit-start">Length of data</label>
+                <input type="text" class="form-control" id="edit-start" name="edit-start" value="">
+              </div>
+              <label class="c-input c-radio">
+                <input id="edit-html" value="html" name="edit-radio" type="radio">
+                <span class="c-indicator"></span>
+                HTML version
+              </label>
+              <label class="c-input c-radio">
+                <input id="edit-svg" value="svg" name="edit-radio" type="radio">
+                <span class="c-indicator"></span>
+                SVG version
+              </label>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="submit" name="edit" class="btn btn-primary">Save changes</button>
+            </div>
+          </form>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+    <div class="container">
+      <div class="row">
+        <div class="col-xs-12">
+          <img src="images/env_logo.png" class="img-fluid" style="margin-bottom:15px">
+          <?php include 'includes/navbar.php'; ?>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-xs-12">
+          <h1 style="display:inline;">Gauges</h1>
+          <form action="" method="GET" class="form-inline pull-xs-right" style="margin-top:20px">
+            <input type="hidden" name="sort" value="<?php echo (empty($_GET['page'])) ? '' : $_GET['sort'] ?>">
+            <input type="hidden" name="page" value="1">
+            <div class="form-group">
+              <input type="text" class="form-control" name="search" value="<?php echo (empty($_GET['search'])) ? '' : $_GET['search'] ?>" placeholder="Search" value="Search">
+            </div>
+            <input type="submit" class="btn btn-primary" value="Search">
+            <small style="display:block" class="text-muted" id="num-results"></small>
+          </form>
+          <form action="" method="GET" class="form-inline" style="margin-top:10px">
+            <div class="form-group">
+              <select class="custom-select" name="sort" id="sortform">
+                <option value="newest" <?php echo (empty($_GET['sort']) || $_GET['sort'] === 'newest') ? 'selected' : ''; ?>>Newest first</option>
+                <option value="oldest" <?php echo (!empty($_GET['sort']) && $_GET['sort'] === 'oldest') ? 'selected' : ''; ?>>Oldest first</option>
+                <option value="title" <?php echo (!empty($_GET['sort']) && $_GET['sort'] === 'title') ? 'selected' : ''; ?>>Alphabetical</option>
+                <option value="meterid" <?php echo (!empty($_GET['sort']) && $_GET['sort'] === 'meterid') ? 'selected' : ''; ?>>Sort by meter ID</option>
+              </select>
+            </div>
+            <?php if (isset($_GET['search'])) { echo "<input type=\"hidden\" name=\"search\" value=\"{$_GET['search']}\">"; } ?>
+          </form>
+          <?php
+          $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
+          if (isset($_GET['search']) && trim($_GET['search']) !== '') {
+            $count = $db->prepare('SELECT COUNT(*) FROM gauges WHERE CONCAT(title, " ", title2) LIKE ?');
+            $count->execute(array("%{$_GET['search']}%"));
+            $count = $count->fetch()['COUNT(*)'];
+          }
+          else {
+            $count = $db->query('SELECT COUNT(*) FROM gauges')->fetch()['COUNT(*)'];
+          }
+          $limit = 5;
+          $offset = $limit * $page;
+          $final_page = ceil($count / $limit);
+          $_GET['sort'] = (empty($_GET['sort'])) ? 'newest' : $_GET['sort'];
+          switch ($_GET['sort']) {
+            case 'newest':
+              $orderby = 'id DESC';
+              break;
+            case 'oldest':
+              $orderby = 'id ASC';
+              break;
+            case 'meterid':
+              $orderby = 'meter_id ASC, id DESC';
+              break;
+            case 'title':
+              $orderby = 'title ASC, title2 ASC, id DESC';
+              break;
+            default:
+              $orderby = 'id DESC';
+              break;
+          }
+          $search = (empty($_GET['search'])) ? ' ' : ' WHERE CONCAT(title, " ", title2) LIKE ? '; // Use parameters for sql injection!
+          $stmt = $db->prepare("SELECT * FROM gauges{$search}ORDER BY {$orderby} LIMIT {$offset}, {$limit}");
+          if ($search === ' ') {
+            $stmt->execute();
+          }
+          else {
+            $stmt->execute(array("%{$_GET['search']}%"));
+          }
+          if ($stmt->rowCount() === 0) {
+            echo '<h1 class="text-muted" style="margin-top:20px;margin-bottom:50px">No Results</h1>';
+          }
+          else {
+            ?>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Meter</th>
+                  <th>URL</th>
+                  <th>Color</th>
+                  <th>Background</th>
+                  <th>Font</th>
+                  <th>Length of data</th>
+                  <th>Data interval</th>
+                  <th>Edit</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+            <?php
+              foreach ($stmt->fetchAll() as $gauge) {
+                $url = gaugeURL($gauge['meter_id'], $gauge['data_interval'], $gauge['color'], $gauge['bg'], $gauge['height'], $gauge['width'], $gauge['font_family'], $gauge['title'], $gauge['title2'], $gauge['border_radius'], $gauge['rounding'], $gauge['ver'], $gauge['units'], $gauge['start']);
+              ?>
+              <tr>
+                <td><iframe style="min-height:190px" src="<?php echo $url; ?>" frameborder="0"></iframe></td>
+                <td><a href="<?php echo $url; ?>" target="_blank">Link</a></td>
+                <td><?php echo $gauge['color']; ?></td>
+                <td><?php echo $gauge['bg']; ?></td>
+                <td><?php echo $gauge['font_family']; ?></td>
+                <td><?php echo $gauge['start']; ?></td>
+                <td><?php echo $gauge['data_interval']; ?></td>
+                <td><a class="btn btn-primary edit-gauge" data-url="<?php echo $url ?>" data-gaugeid="<?php echo $gauge['id'] ?>" href="#">Edit</a></td>
+                <td>
+                  <form action="" method="POST">
+                    <input type="hidden" name="gaugeid" value="<?php echo $gauge['id']; ?>">
+                    <input type="hidden" name="meterid" value="<?php echo $gauge['meter_id']; ?>">
+                    <input type="submit" name="delete" value="Delete" class="btn btn-danger">
+                  </form>
+                </td>
+              </tr>
+              <?php }  ?>
+            </tbody>
+          </table>
+          <nav aria-label="Page navigation" class="text-xs-center">
+            <ul class="pagination pagination-lg">
+              <?php if ($page > 0) { ?>
+              <li class="page-item">
+                <a class="page-link" href="?sort=<?php echo $_GET['sort'] ?>&page=<?php echo $page ?>" aria-label="Previous">
+                  <span aria-hidden="true">&laquo;</span>
+                  <span class="sr-only">Previous</span>
+                </a>
+              </li>
+              <?php }
+              for ($i = 1; $i <= $final_page; $i++) {
+                if ($page + 1 === $i) {
+                  echo '<li class="page-item active"><a class="page-link" href="?sort='.$_GET['sort'].'&page=' . $i . '&search=' .urlencode($_GET['search']). '">' . $i . '</a></li>';
+                }
+                else {
+                  echo '<li class="page-item"><a class="page-link" href="?sort='.$_GET['sort'].'&page=' . $i . '&search=' .urlencode($_GET['search']). '">' . $i . '</a></li>';
+                }
+              }
+              if ($page + 1 < $final_page) { ?>
+              <li class="page-item">
+                <a class="page-link" href="?sort=<?php echo $_GET['sort'] ?>&page=<?php echo $page + 2 ?>" aria-label="Next">
+                  <span aria-hidden="true">&raquo;</span>
+                  <span class="sr-only">Next</span>
+                </a>
+              </li>
+              <?php } ?>
+            </ul>
+          </nav>
+          <?php } // End else rowcount == 0 ?>
+        </div>
+      </div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/js/bootstrap.min.js" integrity="sha384-vZ2WRJMwsjRMW/8U7i6PWi6AlO1L79snBrmgiDpgIWJ82z8eA5lenwvxbMV1PAh7" crossorigin="anonymous"></script>
+<script>
+
+$('.edit-gauge').click(function(e) {
+  e.preventDefault();
+  $('#edit-modal').modal('show');
+  var gaugeid = $(this).data('gaugeid'),
+      url = $(this).data('url');
+  var meterid = getParameterByName('meter_id', url);
+  var datainterval = getParameterByName('data_interval', url);
+  var color = getParameterByName('color', url);
+  var bg = getParameterByName('bg', url);
+  var height = getParameterByName('height', url);
+  var width = getParameterByName('width', url);
+  var fontfamily = getParameterByName('font_family', url);
+  var title = getParameterByName('title', url);
+  var title2 = getParameterByName('title2', url);
+  var borderradius = getParameterByName('border_radius', url);
+  var rounding = getParameterByName('rounding', url);
+  var ver = getParameterByName('ver', url);
+  var units = getParameterByName('units', url);
+  var start = getParameterByName('start', url);
+  var db = '1';
+  $('#meter-id').val(meterid);
+  $('#edit-meter').val(meterid)
+  $('#gauge-id').val(gaugeid);
+  $('#edit-interval').val(datainterval);
+  $('#edit-color').val(color);
+  $('#edit-bg').val(bg);
+  $('#edit-height').val(height);
+  $('#edit-width').val(width);
+  $('#edit-fontfamily').val(fontfamily);
+  $('#edit-title').val(title);
+  $('#edit-title2').val(title2);
+  $('#edit-borderradius').val(borderradius);
+  $('#edit-rounding').val(rounding);
+  $('#edit-units').val(units);
+  $('#edit-start').val(start);
+  if (ver === 'html') {
+    $('#edit-html').prop('checked', true);
+  }
+  else {
+    $('#edit-svg').prop('checked', true);
+  }
+});
+// http://stackoverflow.com/a/901144/2624391
+function getParameterByName(name, url) {
+  if (!url) url = window.location.href;
+  name = name.replace(/[\[\]]/g, "\\$&");
+  var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+    results = regex.exec(url);
+  if (!results) return null;
+  if (!results[2]) return '';
+  return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+$('#sortform').change(function() {
+  this.form.submit();
+});
+$('#num-results').text(
+  '<?php echo (empty($_GET['search'])) ? '' : $count . ' Results for "' . $_GET['search'] . '"'?>');
+</script>
+  </body>
+</html>

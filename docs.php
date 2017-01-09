@@ -41,7 +41,7 @@ if (isset($_POST['refreshdb'])) {
       <div class="container">
         <div class="row">
           <div class="col-xs-12">
-            <h1>Documentation <small class="text-muted">for <?php echo ucwords(implode(' ', array_slice($domain, 0, count($domain) - 2))); ?></small></h1>
+            <h1>Documentation <small class="text-muted">for Oberlin<?php //echo ucwords(implode(' ', array_slice($domain, 0, count($domain) - 2))); ?></small></h1>
             <hr>
 
             <h3>Meters</h3>

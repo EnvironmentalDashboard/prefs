@@ -31,7 +31,7 @@
     <a class="nav-link <?php echo ($fn === 'orbs') ? 'active' : ''; ?>" href="orbs.php">Orbs</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?php echo ($fn === 'create-timeseries') ? 'active' : ''; ?>" href="create-timeseries.php">Time series</a>
+    <a class="nav-link <?php echo ($fn === 'timeseries') ? 'active' : ''; ?>" href="timeseries.php">Time series</a>
   </li>
   <li class="nav-item">
     <a class="nav-link <?php echo ($fn === 'manage-cron') ? 'active' : ''; ?>" href="manage-cron.php">Manage meters</a>

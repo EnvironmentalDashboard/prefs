@@ -8,6 +8,7 @@
       <a class="dropdown-item <?php echo ($fn === 'timing') ? 'active' : ''; ?>" href="timing.php">Timing</a>
       <a class="dropdown-item <?php echo ($fn === 'landscape-components') ? 'active' : ''; ?>" href="landscape-components.php">Landscape components</a>
       <a class="dropdown-item <?php echo ($fn === 'buildingos-integration') ? 'active' : ''; ?>" href="buildingos-integration.php">Gauge integration</a>
+      <a class="dropdown-item <?php echo ($fn === 'youtube') ? 'active' : ''; ?>" href="youtube.php">YouTube</a>
       <div class="dropdown-divider"></div>
       <a class="dropdown-item" href="../cwd/" target="_blank">Preview</a>
     </div>
@@ -18,6 +19,7 @@
       <a class="dropdown-item <?php echo ($fn === 'review-events') ? 'active' : ''; ?>" href="review-events.php">Review events</a>
       <a class="dropdown-item <?php echo ($fn === 'add-location') ? 'active' : ''; ?>" href="add-location.php">Add locations</a>
       <a class="dropdown-item <?php echo ($fn === 'add-screen') ? 'active' : ''; ?>" href="add-screen.php">Add screen locations</a>
+      <a class="dropdown-item <?php echo ($fn === 'screen-locations') ? 'active' : ''; ?>" href="screen-locations.php">Screen locations</a>
     </div>
   </li>
   <li class="nav-item dropdown">

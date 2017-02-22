@@ -2,25 +2,7 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
-function gaugeURL($meter_id, $data_interval, $color, $bg, $height, $width, $font_family, $title, $title2, $border_radius, $rounding, $ver, $units, $start) {
-  $q = http_build_query(array(
-    'meter_id' => $meter_id,
-    'data_interval' => $data_interval,
-    'color' => $color,
-    'bg' => $bg,
-    'height' => $height,
-    'width' => $width,
-    'font_family' => $font_family,
-    'title' => $title,
-    'title2' => $title2,
-    'border_radius' => $border_radius,
-    'rounding' => $rounding,
-    'ver' => $ver,
-    'units' => $units,
-    'start' => $start
-  ));
-  return "http://{$_SERVER['HTTP_HOST']}/oberlin/gauges/gauge.php?" . $q;
-}
+
 $default_color = '#ecf0f1';
 $default_bg = '#2ecc71';
 $default_height = '190';
@@ -29,11 +11,10 @@ $default_font_family = 'Futura, Helvetica, sans-serif';
 $default_border_radius = '3';
 $default_precision = '1';
 $default_ver = 'html';
-$default_start = '-2 weeks';
 if (isset($_POST['submit'])) {
   $q = array(
+    ':rv_id' => $_POST['existing_configs'],
     ':meter_id' => $_POST['meter'],
-    ':data_interval' => $_POST['data_interval'],
     ':color' => $_POST['color'],
     ':bg' => $_POST['bg'],
     ':height' => $_POST['height'],
@@ -44,11 +25,10 @@ if (isset($_POST['submit'])) {
     ':border_radius' => $_POST['border_radius'],
     ':rounding' => $_POST['rounding'],
     ':ver' => $_POST['radio'],
-    ':units' => $_POST['units'],
-    ':start' => $_POST['start']
+    ':units' => $_POST['units']
   );
-  $stmt = $db->prepare('INSERT INTO gauges (meter_id, data_interval, color, bg, height, width, font_family, title, title2, border_radius, rounding, ver, units, start)
-    VALUES (:meter_id, :data_interval, :color, :bg, :height, :width, :font_family, :title, :title2, :border_radius, :rounding, :ver, :units, :start)');
+  $stmt = $db->prepare('INSERT INTO gauges (rv_id, meter_id, color, bg, height, width, font_family, title, title2, border_radius, rounding, ver, units)
+    VALUES (:rv_id, :meter_id, :color, :bg, :height, :width, :font_family, :title, :title2, :border_radius, :rounding, :ver, :units)');
   $stmt->execute($q);
   $stmt = $db->prepare('UPDATE meters SET num_using = num_using + 1 WHERE id = ?');
   $stmt->execute(array($_POST['meter']));
@@ -95,9 +75,170 @@ $javascript = ob_get_clean();
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title>Create gauge</title>
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/css/bootstrap.min.css" integrity="sha384-y3tfxAZXuh4HwSYylfB+J125MxIs6mR5FOHamPBG064zB+AFeWH94NdvaCBm8qnd" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
   </head>
   <body style="padding-top:5px">
+
+    <!-- Modal -->
+    <div class="modal fade" id="rv_modal" tabindex="-1" role="dialog" aria-labelledby="rv_modal_label" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <form action="includes/add-rv-config.php" id="modal_form">
+            <div class="modal-header">
+              <h5 class="modal-title" id="rv_modal_label">Customize relative value</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>&nbsp;</th>
+                    <th>Sun</th>
+                    <th>Mon</th>
+                    <th>Tue</th>
+                    <th>Wed</th>
+                    <th>Thur</th>
+                    <th>Fri</th>
+                    <th>Sat</th>
+                    <th>Go back by</th>
+                    <th>Go back amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Group 1</th>
+                    <td><input type="radio" value="1" name="sun"></td>
+                    <td><input type="radio" value="1" name="mon"></td>
+                    <td><input type="radio" value="1" name="tue"></td>
+                    <td><input type="radio" value="1" name="wed"></td>
+                    <td><input type="radio" value="1" name="thur"></td>
+                    <td><input type="radio" value="1" name="fri"></td>
+                    <td><input type="radio" value="1" name="sat"></td>
+                    <td>
+                      <select class="form-control go-back-by" name="go_back_by1">
+                        <option value="npoints">a number of points</option>
+                        <option value="start">a fixed amount of time</option>
+                      </select>
+                    </td>
+                    <td><input type="text" name="amount1" class="form-control"></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Group 2</th>
+                    <td><input type="radio" value="2" name="sun"></td>
+                    <td><input type="radio" value="2" name="mon"></td>
+                    <td><input type="radio" value="2" name="tue"></td>
+                    <td><input type="radio" value="2" name="wed"></td>
+                    <td><input type="radio" value="2" name="thur"></td>
+                    <td><input type="radio" value="2" name="fri"></td>
+                    <td><input type="radio" value="2" name="sat"></td>
+                    <td>
+                      <select class="form-control go-back-by" name="go_back_by2">
+                        <option value="npoints">a number of points</option>
+                        <option value="start">a fixed amount of time</option>
+                      </select>
+                    </td>
+                    <td><input type="text" name="amount2" class="form-control"></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Group 3</th>
+                    <td><input type="radio" value="3" name="sun"></td>
+                    <td><input type="radio" value="3" name="mon"></td>
+                    <td><input type="radio" value="3" name="tue"></td>
+                    <td><input type="radio" value="3" name="wed"></td>
+                    <td><input type="radio" value="3" name="thur"></td>
+                    <td><input type="radio" value="3" name="fri"></td>
+                    <td><input type="radio" value="3" name="sat"></td>
+                    <td>
+                      <select class="form-control go-back-by" name="go_back_by3">
+                        <option value="npoints">a number of points</option>
+                        <option value="start">a fixed amount of time</option>
+                      </select>
+                    </td>
+                    <td><input type="text" name="amount3" class="form-control"></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Group 4</th>
+                    <td><input type="radio" value="4" name="sun"></td>
+                    <td><input type="radio" value="4" name="mon"></td>
+                    <td><input type="radio" value="4" name="tue"></td>
+                    <td><input type="radio" value="4" name="wed"></td>
+                    <td><input type="radio" value="4" name="thur"></td>
+                    <td><input type="radio" value="4" name="fri"></td>
+                    <td><input type="radio" value="4" name="sat"></td>
+                    <td>
+                      <select class="form-control go-back-by" name="go_back_by4">
+                        <option value="npoints">a number of points</option>
+                        <option value="start">a fixed amount of time</option>
+                      </select>
+                    </td>
+                    <td><input type="text" name="amount4" class="form-control"></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Group 5</th>
+                    <td><input type="radio" value="5" name="sun"></td>
+                    <td><input type="radio" value="5" name="mon"></td>
+                    <td><input type="radio" value="5" name="tue"></td>
+                    <td><input type="radio" value="5" name="wed"></td>
+                    <td><input type="radio" value="5" name="thur"></td>
+                    <td><input type="radio" value="5" name="fri"></td>
+                    <td><input type="radio" value="5" name="sat"></td>
+                    <td>
+                      <select class="form-control go-back-by" name="go_back_by5">
+                        <option value="npoints">a number of points</option>
+                        <option value="start">a fixed amount of time</option>
+                      </select>
+                    </td>
+                    <td><input type="text" name="amount5" class="form-control"></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Group 6</th>
+                    <td><input type="radio" value="6" name="sun"></td>
+                    <td><input type="radio" value="6" name="mon"></td>
+                    <td><input type="radio" value="6" name="tue"></td>
+                    <td><input type="radio" value="6" name="wed"></td>
+                    <td><input type="radio" value="6" name="thur"></td>
+                    <td><input type="radio" value="6" name="fri"></td>
+                    <td><input type="radio" value="6" name="sat"></td>
+                    <td>
+                      <select class="form-control go-back-by" name="go_back_by6">
+                        <option value="npoints">a number of points</option>
+                        <option value="start">a fixed amount of time</option>
+                      </select>
+                    </td>
+                    <td><input type="text" name="amount6" class="form-control"></td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Group 7</th>
+                    <td><input type="radio" value="7" name="sun"></td>
+                    <td><input type="radio" value="7" name="mon"></td>
+                    <td><input type="radio" value="7" name="tue"></td>
+                    <td><input type="radio" value="7" name="wed"></td>
+                    <td><input type="radio" value="7" name="thur"></td>
+                    <td><input type="radio" value="7" name="fri"></td>
+                    <td><input type="radio" value="7" name="sat"></td>
+                    <td>
+                      <select class="form-control go-back-by" name="go_back_by7">
+                        <option value="npoints">a number of points</option>
+                        <option value="start">a fixed amount of time</option>
+                      </select>
+                    </td>
+                    <td><input type="text" name="amount7" class="form-control"></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+              <input type="hidden" name="rv_meter_id" id="rv_meter_id" value="">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary">Save changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <div class="container">
       <div class="row">
@@ -115,23 +256,20 @@ $javascript = ob_get_clean();
             <div class="form-group row">
               <label for="building" class="col-sm-3 form-control-label">Building name</label>
               <div class="col-sm-9">
-                <select style="width:100%" name="building" id="building" class="c-select"></select>
+                <select style="width:100%" name="building" id="building" class="custom-select"></select>
               </div>
             </div>
             <div class="form-group row">
               <label for="meter" class="col-sm-3 form-control-label">Meter name</label>
               <div class="col-sm-9">
-                <select style="width:100%" name="meter" id="meter" class="c-select"></select>
+                <select style="width:100%" name="meter" id="meter" class="custom-select"></select>
               </div>
             </div>
             <div class="form-group row">
-              <label for="data_interval" class="col-sm-3 form-control-label">Data interval</label>
+              <div class="col-sm-3"><p>Select relative value configuration</p></div>
               <div class="col-sm-9">
-                <select style="width:100%" name="data_interval" id="data_interval" class="c-select">
-                  <option value="[1, 2, 3, 4, 5, 6, 7]">All days</option>
-                  <option value="[2, 3, 4, 5, 6], [1, 7]">Group as [weekdays], [weekends]</option>
-                  <option value="[2, 4, 6], [3, 5], [1, 7]">Group as [Monday, Wednesday, Friday], [Tuesday, Thursday], [Saturday, Sunday]</option>
-                </select>
+                <div id="checkboxes"></div>
+                <button type="button" id="modal_btn" class="btn btn-primary btn-block" data-toggle="modal" data-id="" data-target="#rv_modal">Customize relative value calculation</button>
               </div>
             </div>
             <div class="form-group row">
@@ -149,13 +287,13 @@ $javascript = ob_get_clean();
             <div class="form-group row">
               <label for="color" class="col-sm-3 form-control-label">Color</label>
               <div class="col-sm-9">
-                <input type="text" class="form-control" id="color" name="color" placeholder="e.g. #ecf0f1" value="<?php echo $default_color; ?>" maxlength="10">
+                <input type="color" class="form-control" id="color" name="color" placeholder="e.g. #ecf0f1" value="<?php echo $default_color; ?>" maxlength="10">
               </div>
             </div>
             <div class="form-group row">
               <label for="bg" class="col-sm-3 form-control-label">Background</label>
               <div class="col-sm-9">
-                <input type="text" class="form-control" id="bg" name="bg" placeholder="e.g. #2ecc71" value="<?php echo $default_bg; ?>" maxlength="10">
+                <input type="color" class="form-control" id="bg" name="bg" placeholder="e.g. #2ecc71" value="<?php echo $default_bg; ?>" maxlength="10">
               </div>
             </div>
             <div class="form-group row">
@@ -190,13 +328,6 @@ $javascript = ob_get_clean();
               </div>
             </div>
             <div class="form-group row">
-              <label for="start" class="col-sm-3 form-control-label">Lengh of data</label>
-              <div class="col-sm-9">
-                <input type="text" class="form-control" id="start" name="start" value="<?php echo $default_start; ?>">
-                <small class="text-muted">How far back should the historical data go?</small>
-              </div>
-            </div>
-            <div class="form-group row">
               <label for="units" class="col-sm-3 form-control-label">Units</label>
               <div class="col-sm-9">
                 <input type="text" class="form-control" id="units" name="units">
@@ -204,21 +335,21 @@ $javascript = ob_get_clean();
               </div>
             </div>
             <div class="form-group row">
-              <div class="col-sm-offset-3 col-sm-9">
-                <label class="c-input c-radio">
-                  <input id="html" value="html" name="radio" type="radio"<?php echo ($default_ver === 'html') ? ' checked' : ''; ?>>
-                  <span class="c-indicator"></span>
-                  HTML version
+              <div class="offset-sm-3 col-sm-9">
+                <label class="custom-control custom-radio">
+                  <input id="html" value="html" name="radio" type="radio"<?php echo ($default_ver === 'html') ? ' checked' : ''; ?> class="custom-control-input">
+                  <span class="custom-control-indicator"></span>
+                  <span class="custom-control-description">HTML version</span>
                 </label>
-                <label class="c-input c-radio">
-                  <input id="svg" value="svg" name="radio" type="radio"<?php echo ($default_ver === 'svg') ? ' checked' : ''; ?>>
-                  <span class="c-indicator"></span>
-                  SVG version
+                <label class="custom-control custom-radio">
+                  <input id="svg" value="svg" name="radio" type="radio"<?php echo ($default_ver === 'svg') ? ' checked' : ''; ?> class="custom-control-input">
+                  <span class="custom-control-indicator"></span>
+                  <span class="custom-control-description">SVG version</span>
                 </label>
               </div>
             </div>
             <div class="form-group row">
-              <div class="col-sm-offset-3 col-sm-9">
+              <div class="offset-sm-3 col-sm-9">
                 <a href="#" id="preview" class="btn btn-secondary">Preview gauge</a>
                 <button type="submit" name="submit" class="btn btn-primary">Save gauge</button>
               </div>
@@ -234,61 +365,121 @@ $javascript = ob_get_clean();
         </div>
       </div>
     </div>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/js/bootstrap.min.js" integrity="sha384-vZ2WRJMwsjRMW/8U7i6PWi6AlO1L79snBrmgiDpgIWJ82z8eA5lenwvxbMV1PAh7" crossorigin="anonymous"></script>
-<script>
-// THE JS HERE IS A BIT MESSY AND ALSO NOT ALL JQUERY... //
-// http://stackoverflow.com/questions/29802104/javascript-change-drop-down-box-options-based-on-another-drop-down-box-value
-var buildings = {
-<?php echo $javascript; ?>
-},
-building_select = document.querySelector('#building'),
-meter_select = document.querySelector('#meter');
+    <script
+    src="https://code.jquery.com/jquery-3.1.1.min.js"
+    integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+    crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+    <script>
+    // THE JS HERE IS A BIT MESSY AND ALSO NOT ALL JQUERY... //
+    // http://stackoverflow.com/questions/29802104/javascript-change-drop-down-box-options-based-on-another-drop-down-box-value
+    var buildings = {
+    <?php echo $javascript; ?>
+    };
+    var building_select = document.querySelector('#building');
+    var meter_select = document.querySelector('#meter');
 
-setOptions(building_select, Object.keys(buildings), Object.keys(buildings));
-setOptions(meter_select, buildings[building_select.value][0], buildings[building_select.value][1]);
-building_select.addEventListener('change', function() {
-  setOptions(meter_select, buildings[building_select.value][0], buildings[building_select.value][1]);
-});
+    setOptions(building_select, Object.keys(buildings), Object.keys(buildings));
+    setOptions(meter_select, buildings[building_select.value][0], buildings[building_select.value][1]);
+    building_select.addEventListener('change', function() {
+      setOptions(meter_select, buildings[building_select.value][0], buildings[building_select.value][1]);
+    });
+    
+    function setOptions(dropDown, options, value) {
+      dropDown.innerHTML = '';
+      for (var i = 0; i < options.length; i++) {
+        dropDown.innerHTML += '<option value="' + value[i] + '">' + options[i] + '</option>';
+      }
+    }
 
-function setOptions(dropDown, options, value) {
-  dropDown.innerHTML = '';
-  for (var i = 0; i < options.length; i++) {
-    dropDown.innerHTML += '<option value="' + value[i] + '">' + options[i] + '</option>';
-  }
-}
 
+    function setGauge(qs) {
+      $('#preview-frame').html('<iframe frameborder="0" height="' + $("#height").val() + '" width="' + $("#width").val() + '" src="<?php echo "http://{$_SERVER['HTTP_HOST']}/oberlin/gauges/gauge.php?"; ?>' + qs + '"></iframe>');
+    }
 
-function setGauge(qs) {
-  $('#preview-frame').html('<iframe frameborder="0" height="' + $("#height").val() + '" width="' + $("#width").val() + '" src="<?php echo "http://{$_SERVER['HTTP_HOST']}/gauges/gauge.php?"; ?>' + qs + '"></iframe>');
-}
+    // http://stackoverflow.com/a/111545/2624391
+    function encodeQueryData(data) {
+      var ret = [];
+      for (var d in data)
+        ret.push(encodeURIComponent(d) + "=" + encodeURIComponent(data[d]));
+      return ret.join("&");
+    }
+    
+    $('#preview').on('click', function() {
+      var e = document.getElementById("meter");
+      var data = {
+        'meter_id': e.options[e.selectedIndex].value,
+        'color': $("#color").val(),
+        'bg': $("#bg").val(),
+        'height': $("#height").val(),
+        'width': $("#width").val(),
+        'title': $("#title").val(),
+        'title2': $("#title2").val(),
+        'font_family': $("#font_family").val(),
+        'units': $("#units").val(),
+        'ver': $('input[name="radio"]:checked').val(),
+      };
+      console.log(data);
+      setGauge(encodeQueryData(data));
+    });
 
-// http://stackoverflow.com/a/111545/2624391
-function encodeQueryData(data) {
-  var ret = [];
-  for (var d in data)
-    ret.push(encodeURIComponent(d) + "=" + encodeURIComponent(data[d]));
-  return ret.join("&");
-}
+    <?php
+    $saved_rv_configs = array();
+    $cur_id = null;
+    foreach ($db->query('SELECT relative_values.grouping, relative_values.id, meters.id AS meter_id FROM relative_values INNER JOIN meters ON meters.bos_uuid = relative_values.meter_uuid WHERE permission =\'gauges\'') as $row) {
+      if ($cur_id !== $row['meter_id']) {
+        $saved_rv_configs[$row['meter_id']] = array(array(intval($row['id']), json_decode($row['grouping'])));
+      } else {
+        $saved_rv_configs[$row['meter_id']][] = array(intval($row['id']), json_decode($row['grouping']));
+      }
+      $cur_id = $row['meter_id'];
+    }
+    ?>
+    var saved_rv_configs = <?php echo json_encode($saved_rv_configs); ?>;
 
-document.getElementById("preview").addEventListener("click", function() {
-  var e = document.getElementById("meter");
-  var data = {
-    'meter_id': e.options[e.selectedIndex].value,
-    'color': $("#color").val(),
-    'bg': $("#bg").val(),
-    'height': $("#height").val(),
-    'width': $("#width").val(),
-    'title': $("#title").val(),
-    'title2': $("#title2").val(),
-    'font_family': $("#font_family").val(),
-    'units': $("#units").val(),
-    'ver': $('input[name="radio"]:checked').val(),
-    'start': $("#start").val()
-  };
-  console.log(data);
-  setGauge(encodeQueryData(data));
-});
-</script>
+    function updateConfigs() {
+      $('#checkboxes').html('');
+      var val = $('#meter').val();
+      $('#modal_btn').attr('data-id', val);
+      if (val in saved_rv_configs) {
+        $.each(saved_rv_configs[val], function( index, value ) {
+          if (index === 0) {
+            $('#checkboxes').html('<p>Select an already existing configuration:</p>');
+          }
+          $('#checkboxes').append('<label class="custom-control custom-radio"><input name="existing_configs" type="radio" class="custom-control-input" value="'+value[0]+'"><span class="custom-control-indicator"></span><span class="custom-control-description"><code>'+JSON.stringify(value[1])+'</code></span></label>');
+        });
+        $('#checkboxes').append('<hr><p>Or create a new configuration below:</p>');
+      } else {
+        $('#checkboxes').html('<p class="text-muted">There are no relative value configurations for this meter.</p>');
+      }
+    }
+    updateConfigs();
+    $('#meter, #building').on('change', updateConfigs);
+
+    $('#rv_modal').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget); // Button that triggered the modal
+      var id = button.data('id');
+      var modal = $(this)
+      $('#rv_meter_id').val(id);
+      if (id in saved_rv_configs) {
+        console.log(saved_rv_configs[id]);
+      }
+    });
+
+    $('#modal_form').on('submit', function( event ) {
+      event.preventDefault();
+      $('#rv_modal').modal('hide');
+      var form = $(this);
+      $.ajax( {
+        type: "POST",
+        url: form.attr( 'action' ),
+        data: form.serialize(),
+        success: function( response ) {
+          $('#checkboxes').prepend(response);
+        }
+      } );
+    });
+    </script>
   </body>
 </html>

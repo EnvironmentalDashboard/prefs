@@ -29,11 +29,15 @@
       <a class="dropdown-item <?php echo ($fn === 'manage-gauges') ? 'active' : ''; ?>" href="manage-gauges.php">Manage gauges</a>
     </div>
   </li>
-  <li class="nav-item">
-    <a class="nav-link <?php echo ($fn === 'orbs') ? 'active' : ''; ?>" href="orbs.php">Orbs</a>
+  <li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Time series</a>
+    <div class="dropdown-menu">
+      <a class="dropdown-item <?php echo ($fn === 'create-timeseries') ? 'active' : ''; ?>" href="create-timeseries.php">Make URL</a>
+      <a class="dropdown-item <?php echo ($fn === 'timeseries-animations') ? 'active' : ''; ?>" href="timeseries-animations.php">Customize animations</a>
+    </div>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?php echo ($fn === 'timeseries') ? 'active' : ''; ?>" href="timeseries.php">Time series</a>
+    <a class="nav-link <?php echo ($fn === 'orbs') ? 'active' : ''; ?>" href="orbs.php">Orbs</a>
   </li>
   <li class="nav-item">
     <a class="nav-link <?php echo ($fn === 'manage-cron') ? 'active' : ''; ?>" href="manage-cron.php">Manage meters</a>

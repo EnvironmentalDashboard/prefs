@@ -2,10 +2,10 @@
 // error_reporting(-1);
 // ini_set('display_errors', 'On');
 require '../includes/db.php';
-function gaugeURL($meter_id, $data_interval, $color, $bg, $height, $width, $font_family, $title, $title2, $border_radius, $rounding, $ver, $units, $start) {
+function gaugeURL($rv_id, $meter_id, $color, $bg, $height, $width, $font_family, $title, $title2, $border_radius, $rounding, $ver, $units) {
   $q = http_build_query(array(
+    'rv_id' => $rv_id,
     'meter_id' => $meter_id,
-    'data_interval' => $data_interval,
     'color' => $color,
     'bg' => $bg,
     'height' => $height,
@@ -17,14 +17,12 @@ function gaugeURL($meter_id, $data_interval, $color, $bg, $height, $width, $font
     'rounding' => $rounding,
     'ver' => $ver,
     'units' => $units,
-    'start' => $start
   ));
   return "http://104.131.103.232/oberlin/gauges/gauge.php?" . $q;
 }
 if (isset($_POST['edit'])) {
   $q = array(
     ':meter_id' => $_POST['edit-meter'],
-    ':data_interval' => $_POST['edit-interval'],
     ':color' => $_POST['edit-color'],
     ':bg' => $_POST['edit-bg'],
     ':height' => $_POST['edit-height'],
@@ -36,10 +34,9 @@ if (isset($_POST['edit'])) {
     ':rounding' => $_POST['edit-rounding'],
     ':ver' => $_POST['edit-radio'],
     ':units' => $_POST['edit-units'],
-    ':start' => $_POST['edit-start'],
     ':id' => $_POST['gauge-id']
   );
-  $stmt = $db->prepare('UPDATE gauges SET meter_id = :meter_id, data_interval = :data_interval, color = :color, bg = :bg, height = :height, width = :width, font_family = :font_family, title = :title, title2 = :title2, border_radius = :border_radius, rounding = :rounding, ver = :ver, units = :units, start = :start WHERE id = :id');
+  $stmt = $db->prepare('UPDATE gauges SET meter_id = :meter_id, color = :color, bg = :bg, height = :height, width = :width, font_family = :font_family, title = :title, title2 = :title2, border_radius = :border_radius, rounding = :rounding, ver = :ver, units = :units, start = :start WHERE id = :id');
   $stmt->execute($q);
   $stmt = $db->prepare('UPDATE meters SET num_using = num_using + 1 WHERE id = ?');
   $stmt->execute(array($_POST['edit-meter']));
@@ -75,7 +72,7 @@ foreach ($buildings->fetchAll() as $building) {
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title>Manage gauges</title>
     <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/css/bootstrap.min.css" integrity="sha384-y3tfxAZXuh4HwSYylfB+J125MxIs6mR5FOHamPBG064zB+AFeWH94NdvaCBm8qnd" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
   </head>
   <body style="padding-top:5px">
     <div class="modal fade" id="edit-modal">
@@ -91,15 +88,12 @@ foreach ($buildings->fetchAll() as $building) {
             <div class="modal-body">
               <input type="hidden" value="" id="gauge-id" name="gauge-id">
               <input type="hidden" value="" id="meter-id" name="meter-id">
+              <input type="hidden" value="" id="rv-id" name="rv-id">
               <div class="form-group">
                 <label for="edit-meter">Meter</label>
                 <select style="width:100%" name="edit-meter" id="edit-meter" class="c-select">
                   <?php echo $dropdown_html; ?>
                 </select>
-              </div>
-              <div class="form-group">
-                <label for="edit-interval">Data interval</label>
-                <input type="text" class="form-control" id="edit-interval" name="edit-interval" value="">
               </div>
               <div class="form-group">
                 <label for="edit-color">Color</label>
@@ -140,10 +134,6 @@ foreach ($buildings->fetchAll() as $building) {
               <div class="form-group">
                 <label for="edit-units">Units</label>
                 <input type="text" class="form-control" id="edit-units" name="edit-units" value="">
-              </div>
-              <div class="form-group">
-                <label for="edit-start">Length of data</label>
-                <input type="text" class="form-control" id="edit-start" name="edit-start" value="">
               </div>
               <label class="c-input c-radio">
                 <input id="edit-html" value="html" name="edit-radio" type="radio">
@@ -247,8 +237,6 @@ foreach ($buildings->fetchAll() as $building) {
                   <th>Color</th>
                   <th>Background</th>
                   <th>Font</th>
-                  <th>Length of data</th>
-                  <th>Data interval</th>
                   <th>Edit</th>
                   <th>Delete</th>
                 </tr>
@@ -256,7 +244,7 @@ foreach ($buildings->fetchAll() as $building) {
               <tbody>
             <?php
               foreach ($stmt->fetchAll() as $gauge) {
-                $url = gaugeURL($gauge['meter_id'], $gauge['data_interval'], $gauge['color'], $gauge['bg'], $gauge['height'], $gauge['width'], $gauge['font_family'], $gauge['title'], $gauge['title2'], $gauge['border_radius'], $gauge['rounding'], $gauge['ver'], $gauge['units'], $gauge['start']);
+                $url = gaugeURL($gauge['rv_id'], $gauge['meter_id'], $gauge['color'], $gauge['bg'], $gauge['height'], $gauge['width'], $gauge['font_family'], $gauge['title'], $gauge['title2'], $gauge['border_radius'], $gauge['rounding'], $gauge['ver'], $gauge['units']);
               ?>
               <tr>
                 <td><iframe style="min-height:190px" src="<?php echo $url; ?>" frameborder="0"></iframe></td>
@@ -264,8 +252,6 @@ foreach ($buildings->fetchAll() as $building) {
                 <td><?php echo $gauge['color']; ?></td>
                 <td><?php echo $gauge['bg']; ?></td>
                 <td><?php echo $gauge['font_family']; ?></td>
-                <td><?php echo $gauge['start']; ?></td>
-                <td><?php echo $gauge['data_interval']; ?></td>
                 <td><a class="btn btn-primary edit-gauge" data-url="<?php echo $url ?>" data-gaugeid="<?php echo $gauge['id'] ?>" href="#">Edit</a></td>
                 <td>
                   <form action="" method="POST">
@@ -310,8 +296,9 @@ foreach ($buildings->fetchAll() as $building) {
         </div>
       </div>
     </div>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.2/js/bootstrap.min.js" integrity="sha384-vZ2WRJMwsjRMW/8U7i6PWi6AlO1L79snBrmgiDpgIWJ82z8eA5lenwvxbMV1PAh7" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
 <script>
 
 $('.edit-gauge').click(function(e) {
@@ -319,8 +306,8 @@ $('.edit-gauge').click(function(e) {
   $('#edit-modal').modal('show');
   var gaugeid = $(this).data('gaugeid'),
       url = $(this).data('url');
+  var rvid = getParameterByName('rv_id', url);
   var meterid = getParameterByName('meter_id', url);
-  var datainterval = getParameterByName('data_interval', url);
   var color = getParameterByName('color', url);
   var bg = getParameterByName('bg', url);
   var height = getParameterByName('height', url);
@@ -332,12 +319,11 @@ $('.edit-gauge').click(function(e) {
   var rounding = getParameterByName('rounding', url);
   var ver = getParameterByName('ver', url);
   var units = getParameterByName('units', url);
-  var start = getParameterByName('start', url);
   var db = '1';
+  $('#rv-id').val(rvid);
   $('#meter-id').val(meterid);
   $('#edit-meter').val(meterid)
   $('#gauge-id').val(gaugeid);
-  $('#edit-interval').val(datainterval);
   $('#edit-color').val(color);
   $('#edit-bg').val(bg);
   $('#edit-height').val(height);
@@ -347,8 +333,6 @@ $('.edit-gauge').click(function(e) {
   $('#edit-title2').val(title2);
   $('#edit-borderradius').val(borderradius);
   $('#edit-rounding').val(rounding);
-  $('#edit-units').val(units);
-  $('#edit-start').val(start);
   if (ver === 'html') {
     $('#edit-html').prop('checked', true);
   }

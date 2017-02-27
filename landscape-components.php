@@ -154,7 +154,7 @@ if (isset($_GET['enable'])) {
       </div>
       <div style="clear: both;height: 20px"></div>
       <div class="row">
-        <div class="col-xs-3">
+        <div class="col-sm-3">
           <h4>New component</h4>
           <form enctype="multipart/form-data" action="" method="POST">
             <div class="form-group">
@@ -200,7 +200,7 @@ if (isset($_GET['enable'])) {
             <input type="submit" name="add-landscape-component" value="Add component" class="btn btn-primary">
           </form>
         </div>
-        <div class="col-xs-9">
+        <div class="col-sm-9">
           <h4>Landscape components</h4>
           <table class="table table-responsive">
             <thead>

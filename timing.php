@@ -30,7 +30,7 @@ if (isset($_POST['submit'])) {
       <div style="clear: both;height: 20px"></div>
       <div class="container">
         <div class="row">
-          <div class="col-sm-6 col-sm-push-3">
+          <div class="col-sm-6 push-sm-3">
             <h1>Timing</h1>
             <hr>
             <form accept="" method="POST">

@@ -42,7 +42,7 @@ foreach ($db->query('SELECT id, title, title2 FROM gauges') as $key => $value) {
       <div style="clear: both;height: 20px"></div>
       <div class="row">
         <div class="col-sm-3">
-          <ul class="nav nav-pills nav-stacked">
+          <ul class="nav flex-column">
             <li class="nav-item">
               <a class="nav-link active" href="#" id="landing">Landing</a>
             </li>

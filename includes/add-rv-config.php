@@ -21,5 +21,5 @@ $stmt = $db->prepare('INSERT INTO relative_values (meter_uuid, grouping, relativ
 $json = json_encode($grouping);
 $stmt->execute(array($uuid, $json, 0, 'gauges'));
 
-echo '<label class="custom-control custom-radio"><input name="existing_configs" type="radio" class="custom-control-input" value="'.$db->lastInsertId().'"><span class="custom-control-indicator"></span><span class="custom-control-description"><code>{$json}</code></span></label>';
+echo '<label class="custom-control custom-radio"><input name="existing_configs" type="radio" class="custom-control-input" value="'.$db->lastInsertId().'"><span class="custom-control-indicator"></span><span class="custom-control-description"><code>'.$json.'</code></span></label>';
 ?>

@@ -154,8 +154,7 @@ if (!empty($_POST['name'])) {
       <div class="row">
         <div class="col-xs-12">
           <div style="clear: both;height: 20px"></div>
-          <p style="display: inline;float: left"><a class="btn btn-secondary" href="#" data-toggle="modal" data-target="#modal" data-btn="new">Add new gif</a></p>
-          <p style="display: inline;float: right;"><a class="btn btn-secondary" target="_blank" href="http://104.131.103.232/oberlin/time-series/index.php">Open time series</a></p>
+          <p><a class="btn btn-secondary" href="#" data-toggle="modal" data-target="#modal" data-btn="new">Add new gif</a></p>
           <table class="table">
             <thead>
               <tr>

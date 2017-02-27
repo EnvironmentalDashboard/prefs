@@ -15,28 +15,26 @@ function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fil
     'start' => $start,
     'ticks' => $ticks
   ));
-  return "http://{$_SERVER['HTTP_HOST']}/oberlin/time-series/chart.php?" . $q;
+  return "http://{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/time-series/chart.php?" . $q;
 }
 
-// if (isset($_POST['submit'])) {
-//   $q = array(
-//     ':meter_id' => $_POST['meter_id'],
-//     ':dasharr1' => $_POST['dasharr1'],
-//     ':fill1' => $_POST['fill1'],
-//     ':meter_id2' => $_POST['meter_id2'],
-//     ':dasharr2' => $_POST['dasharr2'],
-//     ':fill2' => $_POST['fill2'],
-//     ':dasharr3' => $_POST['dasharr3'],
-//     ':fill3' => $_POST['fill3'],
-//     ':start' => $_POST['start'],
-//     ':ticks' => $_POST['ticks']
-//   );
-//   $stmt = $db->prepare('INSERT INTO gauges (meter_id1, meter_id2, dasharr1, fill1, dasharr2, fill2, dasharr3, fill3, start, ticks)
-//     VALUES (:meter_id, :data_interval, :color, :bg, :height, :width, :font_family, :title, :title2, :border_radius, :rounding, :ver, :units, :start)');
-//   $stmt->execute($q);
-//   $stmt = $db->prepare('UPDATE meters SET num_using = num_using + 1 WHERE id = ?');
-//   $stmt->execute(array($_POST['meter']));
-// }
+if (isset($_POST['submit'])) {
+  $q = array(
+    ':meter_id1' => $_POST['meter_id'],
+    ':dasharr1' => isset($_POST['dasharr1']) ? $_POST['dasharr1'] : null,
+    ':fill1' => isset($_POST['fill1']) ? $_POST['fill1'] : null,
+    ':meter_id2' => $_POST['meter_id2'],
+    ':dasharr2' => isset($_POST['dasharr2']) ? $_POST['dasharr2'] : null,
+    ':fill2' => isset($_POST['fill2']) ? $_POST['fill2'] : null,
+    ':dasharr3' => isset($_POST['dasharr3']) ? $_POST['dasharr3'] : null,
+    ':fill3' => isset($_POST['fill3']) ? $_POST['fill3'] : null,
+    ':start' => $_POST['start'] ? $_POST['start'] : 0,
+    ':ticks' => isset($_POST['ticks']) ? $_POST['ticks'] : 0
+  );
+  $stmt = $db->prepare('INSERT INTO time_series_configs (meter_id1, meter_id2, dasharr1, fill1, dasharr2, fill2, dasharr3, fill3, start, ticks)
+    VALUES (:meter_id1, :meter_id2, :dasharr1, :fill1, :dasharr2, :fill2, :dasharr3, :fill3, :start, :ticks)');
+  $stmt->execute($q);
+}
 
 $dropdown_html = '';
 foreach ($db->query('SELECT * FROM buildings ORDER BY name ASC') as $building) {
@@ -86,7 +84,7 @@ foreach ($db->query('SELECT * FROM buildings ORDER BY name ASC') as $building) {
                 <select style="width:100%" name="meter_id" id="meter_id" class="custom-select">
                   <?php echo $dropdown_html ?>
                 </select>
-                <input type="color" class="form-control" name="color1" value="#2ecc71" id="color1" style="margin-top:10px;margin-bottom:5px">
+                <input type="color" class="form-control" name="color1" value="#2ecc71" id="color1" style="margin-top:10px;margin-bottom:5px;height: 50px">
                 <label class="custom-control custom-checkbox">
                   <input id="dasharr1" name="dasharr1" type="checkbox" class="custom-control-input">
                   <span class="custom-control-indicator"></span>
@@ -106,7 +104,7 @@ foreach ($db->query('SELECT * FROM buildings ORDER BY name ASC') as $building) {
                 <select style="width:100%" name="meter_id2" id="meter_id2" class="custom-select">
                   <?php echo $dropdown_html ?>
                 </select>
-                <input type="color" class="form-control" name="color3" value="#33A7FF" id="color3" style="margin-top:10px;margin-bottom:5px">
+                <input type="color" class="form-control" name="color3" value="#33A7FF" id="color3" style="margin-top:10px;margin-bottom:5px;height: 50px">
                 <label class="custom-control custom-checkbox">
                   <input id="dasharr2" name="dasharr2" type="checkbox" class="custom-control-input">
                   <span class="custom-control-indicator"></span>
@@ -123,7 +121,7 @@ foreach ($db->query('SELECT * FROM buildings ORDER BY name ASC') as $building) {
             <div class="form-group row">
               <label class="col-sm-3 form-control-label">Historical chart</label>
               <div class="col-sm-9">
-                <input type="color" class="form-control" name="color2" value="#bdc3c7" id="color2" style="margin-bottom:5px">
+                <input type="color" class="form-control" name="color2" value="#bdc3c7" id="color2" style="margin-bottom:5px;height: 50px">
                 <label class="custom-control custom-checkbox">
                   <input id="dasharr3" name="dasharr3" type="checkbox" class="custom-control-input">
                   <span class="custom-control-indicator"></span>
@@ -156,7 +154,7 @@ foreach ($db->query('SELECT * FROM buildings ORDER BY name ASC') as $building) {
             <div class="form-group row">
               <div class="offset-sm-3 col-sm-9">
                 <a href="#" id="preview" class="btn btn-secondary">Preview chart</a>
-                <button type="submit" name="submit" id="submit" class="btn btn-primary">Get URL</button>
+                <button type="submit" name="submit" id="submit" class="btn btn-primary">Save options</button>
               </div>
             </div>
           </form>
@@ -177,7 +175,7 @@ foreach ($db->query('SELECT * FROM buildings ORDER BY name ASC') as $building) {
 
     function setPreview(qs) {
       console.log(qs);
-      $('#preview-frame').html('<iframe frameborder="0" width="450px" height="450px" src="<?php echo "http://{$_SERVER['HTTP_HOST']}/oberlin/time-series/chart.php?"; ?>' + qs + '"></iframe>');
+      $('#preview-frame').html('<iframe frameborder="0" width="450px" height="450px" src="<?php echo "http://{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/time-series/chart.php?"; ?>' + qs + '"></iframe>');
     }
 
     // http://stackoverflow.com/a/111545/2624391

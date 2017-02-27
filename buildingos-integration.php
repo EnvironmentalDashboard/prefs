@@ -35,7 +35,7 @@ foreach ($db->query('SELECT id, title, title2 FROM gauges') as $gauge) {
       </div>
       <div style="clear: both;height: 20px"></div>
       <div class="row">
-        <div class="col-sm-6 col-sm-push-3">
+        <div class="col-sm-6 push-sm-3">
           <h1>Gauge Integration</h1>
           <hr>
           <form action="" method="POST">

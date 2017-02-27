@@ -12,6 +12,9 @@ $default_border_radius = '3';
 $default_precision = '1';
 $default_ver = 'html';
 if (isset($_POST['submit'])) {
+  if (empty($_POST['existing_configs'])) {
+    die('You must select a relative value configuration');
+  }
   $q = array(
     ':rv_id' => $_POST['existing_configs'],
     ':meter_id' => $_POST['meter'],
@@ -23,7 +26,7 @@ if (isset($_POST['submit'])) {
     ':title' => $_POST['title'],
     ':title2' => $_POST['title2'],
     ':border_radius' => $_POST['border_radius'],
-    ':rounding' => $_POST['rounding'],
+    ':rounding' => ($_POST['rounding'] == '') ? null : $_POST['rounding'],
     ':ver' => $_POST['radio'],
     ':units' => $_POST['units']
   );
@@ -111,11 +114,11 @@ $javascript = ob_get_clean();
                   <tr>
                     <th scope="row">Group 1</th>
                     <td><input type="radio" value="1" name="sun"></td>
-                    <td><input type="radio" value="1" name="mon"></td>
-                    <td><input type="radio" value="1" name="tue"></td>
-                    <td><input type="radio" value="1" name="wed"></td>
-                    <td><input type="radio" value="1" name="thur"></td>
-                    <td><input type="radio" value="1" name="fri"></td>
+                    <td><input type="radio" value="1" name="mon" checked></td>
+                    <td><input type="radio" value="1" name="tue" checked></td>
+                    <td><input type="radio" value="1" name="wed" checked></td>
+                    <td><input type="radio" value="1" name="thur" checked></td>
+                    <td><input type="radio" value="1" name="fri" checked></td>
                     <td><input type="radio" value="1" name="sat"></td>
                     <td>
                       <select class="form-control go-back-by" name="go_back_by1">
@@ -123,24 +126,24 @@ $javascript = ob_get_clean();
                         <option value="start">a fixed amount of time</option>
                       </select>
                     </td>
-                    <td><input type="text" name="amount1" class="form-control"></td>
+                    <td><input type="text" name="amount1" class="form-control" value="7"></td>
                   </tr>
                   <tr>
                     <th scope="row">Group 2</th>
-                    <td><input type="radio" value="2" name="sun"></td>
+                    <td><input type="radio" value="2" name="sun" checked></td>
                     <td><input type="radio" value="2" name="mon"></td>
                     <td><input type="radio" value="2" name="tue"></td>
                     <td><input type="radio" value="2" name="wed"></td>
                     <td><input type="radio" value="2" name="thur"></td>
                     <td><input type="radio" value="2" name="fri"></td>
-                    <td><input type="radio" value="2" name="sat"></td>
+                    <td><input type="radio" value="2" name="sat"  checked></td>
                     <td>
                       <select class="form-control go-back-by" name="go_back_by2">
                         <option value="npoints">a number of points</option>
                         <option value="start">a fixed amount of time</option>
                       </select>
                     </td>
-                    <td><input type="text" name="amount2" class="form-control"></td>
+                    <td><input type="text" name="amount2" class="form-control" value="5"></td>
                   </tr>
                   <tr>
                     <th scope="row">Group 3</th>
@@ -268,7 +271,7 @@ $javascript = ob_get_clean();
             <div class="form-group row">
               <div class="col-sm-3"><p>Select relative value configuration</p></div>
               <div class="col-sm-9">
-                <div id="checkboxes"></div>
+                <div id="radios"></div>
                 <button type="button" id="modal_btn" class="btn btn-primary btn-block" data-toggle="modal" data-id="" data-target="#rv_modal">Customize relative value calculation</button>
               </div>
             </div>
@@ -287,13 +290,13 @@ $javascript = ob_get_clean();
             <div class="form-group row">
               <label for="color" class="col-sm-3 form-control-label">Color</label>
               <div class="col-sm-9">
-                <input type="color" class="form-control" id="color" name="color" placeholder="e.g. #ecf0f1" value="<?php echo $default_color; ?>" maxlength="10">
+                <input type="color" class="form-control" id="color" name="color" placeholder="e.g. #ecf0f1" value="<?php echo $default_color; ?>" maxlength="10" style="height:50px">
               </div>
             </div>
             <div class="form-group row">
               <label for="bg" class="col-sm-3 form-control-label">Background</label>
               <div class="col-sm-9">
-                <input type="color" class="form-control" id="bg" name="bg" placeholder="e.g. #2ecc71" value="<?php echo $default_bg; ?>" maxlength="10">
+                <input type="color" class="form-control" id="bg" name="bg" placeholder="e.g. #2ecc71" value="<?php echo $default_bg; ?>" maxlength="10" style="height:50px">
               </div>
             </div>
             <div class="form-group row">
@@ -395,7 +398,7 @@ $javascript = ob_get_clean();
 
 
     function setGauge(qs) {
-      $('#preview-frame').html('<iframe frameborder="0" height="' + $("#height").val() + '" width="' + $("#width").val() + '" src="<?php echo "http://{$_SERVER['HTTP_HOST']}/oberlin/gauges/gauge.php?"; ?>' + qs + '"></iframe>');
+      $('#preview-frame').html('<iframe frameborder="0" height="' + $("#height").val() + '" width="' + $("#width").val() + '" src="<?php echo "http://{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/gauges/gauge.php?"; ?>' + qs + '"></iframe>');
     }
 
     // http://stackoverflow.com/a/111545/2624391
@@ -439,19 +442,19 @@ $javascript = ob_get_clean();
     var saved_rv_configs = <?php echo json_encode($saved_rv_configs); ?>;
 
     function updateConfigs() {
-      $('#checkboxes').html('');
+      $('#radios').html('');
       var val = $('#meter').val();
       $('#modal_btn').attr('data-id', val);
       if (val in saved_rv_configs) {
         $.each(saved_rv_configs[val], function( index, value ) {
           if (index === 0) {
-            $('#checkboxes').html('<p>Select an already existing configuration:</p>');
+            $('#radios').html('<p>Select an already existing configuration:</p>');
           }
-          $('#checkboxes').append('<label class="custom-control custom-radio"><input name="existing_configs" type="radio" class="custom-control-input" value="'+value[0]+'"><span class="custom-control-indicator"></span><span class="custom-control-description"><code>'+JSON.stringify(value[1])+'</code></span></label>');
+          $('#radios').append('<label class="custom-control custom-radio"><input name="existing_configs" type="radio" class="custom-control-input" value="'+value[0]+'"><span class="custom-control-indicator"></span><span class="custom-control-description"><code>'+JSON.stringify(value[1])+'</code></span></label>');
         });
-        $('#checkboxes').append('<hr><p>Or create a new configuration below:</p>');
+        $('#radios').append('<hr><p>Or create a new configuration below:</p>');
       } else {
-        $('#checkboxes').html('<p class="text-muted">There are no relative value configurations for this meter.</p>');
+        $('#radios').html('<p class="text-muted">There are no relative value configurations for this meter.</p>');
       }
     }
     updateConfigs();
@@ -476,7 +479,7 @@ $javascript = ob_get_clean();
         url: form.attr( 'action' ),
         data: form.serialize(),
         success: function( response ) {
-          $('#checkboxes').prepend(response);
+          $('#radios').prepend(response);
         }
       } );
     });

@@ -16,6 +16,7 @@ if (isset($_POST['submit'])) {
     die('You must select a relative value configuration');
   }
   $q = array(
+    ':user_id' => $user_id,
     ':rv_id' => $_POST['existing_configs'],
     ':meter_id' => $_POST['meter'],
     ':color' => $_POST['color'],
@@ -30,14 +31,14 @@ if (isset($_POST['submit'])) {
     ':ver' => $_POST['radio'],
     ':units' => $_POST['units']
   );
-  $stmt = $db->prepare('INSERT INTO gauges (rv_id, meter_id, color, bg, height, width, font_family, title, title2, border_radius, rounding, ver, units)
-    VALUES (:rv_id, :meter_id, :color, :bg, :height, :width, :font_family, :title, :title2, :border_radius, :rounding, :ver, :units)');
+  $stmt = $db->prepare('INSERT INTO gauges (user_id, rv_id, meter_id, color, bg, height, width, font_family, title, title2, border_radius, rounding, ver, units)
+    VALUES (:user_id, :rv_id, :meter_id, :color, :bg, :height, :width, :font_family, :title, :title2, :border_radius, :rounding, :ver, :units)');
   $stmt->execute($q);
   $stmt = $db->prepare('UPDATE meters SET num_using = num_using + 1 WHERE id = ?');
   $stmt->execute(array($_POST['meter']));
 }
 
-$buildings = $db->query('SELECT * FROM buildings');
+$buildings = $db->query("SELECT * FROM buildings WHERE user_id = {$user_id}");
 $buildings = $buildings->fetchAll();
 $num_buildings = count($buildings);
 ob_start();

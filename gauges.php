@@ -9,12 +9,12 @@ if (isset($_POST['submit'])) {
   else {
     $on = 0;
   }
-  $stmt = $db->prepare("UPDATE cwd_states SET gauge1 = ?, gauge2 = ?, gauge3 = ?, gauge4 = ?, `on` = ? WHERE resource = ? LIMIT 1");
-  $stmt->execute(array($_POST['gauge1'], $_POST['gauge2'], $_POST['gauge3'], $_POST['gauge4'], $on, $_POST['resource']));
+  $stmt = $db->prepare("UPDATE cwd_states SET gauge1 = ?, gauge2 = ?, gauge3 = ?, gauge4 = ?, `on` = ? WHERE resource = ? AND user_id = ? LIMIT 1");
+  $stmt->execute(array($_POST['gauge1'], $_POST['gauge2'], $_POST['gauge3'], $_POST['gauge4'], $on, $_POST['resource'], $user_id));
 }
 
 $gauges = array();
-foreach ($db->query('SELECT id, title, title2 FROM gauges') as $key => $value) {
+foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user_id}") as $key => $value) {
   $gauges[$key]['id'] = $value['id'];
   $gauge_name = ($value['title'] !== '') ? $value['title'] .' '. $value['title2'] : 'Untitled gauge';
   $gauges[$key]['title'] = $gauge_name;
@@ -64,7 +64,7 @@ foreach ($db->query('SELECT id, title, title2 FROM gauges') as $key => $value) {
           </ul>
         </div>
         <div class="col-sm-9">
-          <?php foreach ($db->query('SELECT resource, gauge1, gauge2, gauge3, gauge4, `on` FROM cwd_states') as $row) { ?>
+          <?php foreach ($db->query("SELECT resource, gauge1, gauge2, gauge3, gauge4, `on` FROM cwd_states WHERE user_id = {$user_id}") as $row) { ?>
             <form action="" method="POST" id="<?php echo $row['resource'] ?>_form"<?php if ($row['resource'] !== 'landing') { echo ' style="display:none"';} ?>>
               <fieldset class="form-group">
                 <label for="<?php echo $row['resource'] ?>_gauge1">Select gauge 1</label>

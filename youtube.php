@@ -8,7 +8,7 @@ if (isset($_POST['new_video'])) {
   $stmt = $db->prepare('INSERT INTO youtube (video_id) VALUES (?)');
   $stmt->execute(array($arr['v']));
 }
-if (isset($_POST['save'])) {
+if (isset($_POST['action']) && $_POST['action'] === 'Save') {
   foreach ($_POST as $key => $value) {
     $explode = explode(',', $key);
     if (count($explode) < 2) {
@@ -26,6 +26,12 @@ if (isset($_POST['save'])) {
       $stmt->execute(array($value, $youtube_id, $screen_id));
     }
   }
+}
+if (isset($_POST['action']) && $_POST['action'] === 'Delete') {
+  $stmt = $db->prepare('DELETE FROM youtube WHERE id = ?');
+  $stmt->execute(array($_POST['id']));
+  $stmt = $db->prepare('DELETE FROM youtube_screens WHERE youtube_id = ?');
+  $stmt->execute(array($_POST['id']));
 }
 ?>
 <!DOCTYPE html>
@@ -83,11 +89,12 @@ if (isset($_POST['save'])) {
               <thead>
                 <tr>
                   <th>Video ID</th>
+                  <th>Title</th>
                   <?php
                   $screen_count = 0;
                   $screens = array();
                   foreach ($db->query('SELECT id, name FROM calendar_screens ORDER BY name ASC') as $loc) {
-                    echo "<th>{$loc['name']}</th>";
+                    echo "<th><small>".explode(' - ', $loc['name'])[0]."</small></th>";
                     $screens[] = $loc['id'];
                     $screen_count++;
                   } ?>
@@ -98,14 +105,17 @@ if (isset($_POST['save'])) {
                 <?php foreach ($db->query('SELECT id, video_id FROM youtube ORDER BY id DESC') as $row) { ?>
                 <tr><form action="" method="POST">
                   <td><?php echo $row['video_id'] ?></td>
+                  <td id="<?php echo $row['video_id'] ?>" class="youtube-title">Loading</td>
                   <?php for ($screen = 0; $screen < $screen_count; $screen++) { 
                     echo "<td>";
                     $prob = $db->query('SELECT probability FROM youtube_screens WHERE youtube_id = '.intval($row['id']).' AND screen_id = '.intval($screens[$screen]))->fetchColumn();
                     $prob = ($prob === false) ? 0 : $prob;
-                    echo "<input type='text' class='form-control' placeholder='Probability' name='{$row['id']},{$screens[$screen]}' value='{$prob}' />";
+                    echo "<input type='text' class='form-control form-control-sm' placeholder='Probability' name='{$row['id']},{$screens[$screen]}' value='{$prob}' />";
                     echo "</td>";
                   } ?>
-                  <td><input type="submit" class="btn btn-secondary btn-sm" name="save" value="Save" /></td>
+                  <td><input type="submit" class="btn btn-secondary btn-sm" name="action" value="Save" /></td>
+                  <td><input type="submit" class="btn btn-danger btn-sm" name="action" value="Delete" /></td>
+                  <input type="hidden" name="id" value="<?php echo $row['id'] ?>">
                 </form></tr>
                 <?php } ?>
               </tbody>
@@ -114,8 +124,30 @@ if (isset($_POST['save'])) {
         </div>
       </div>
     </div>
-    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script
+    src="https://code.jquery.com/jquery-3.2.0.min.js"
+    integrity="sha256-JAW99MJVpJBGcbzEuXk4Az05s/XyDdBomFqNlM3ic+I="
+    crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+    <script>
+      $('.youtube-title').each(function() {
+        var videoId = $(this).attr('id');
+        $.ajax({
+          url: "https://www.googleapis.com/youtube/v3/videos?id=" + videoId + "&key=AIzaSyCDAZRPbbNS4w_kBz3bZ4Q5B8RFS46FyhM&fields=items(snippet(title))&part=snippet", 
+          dataType: "jsonp",
+          success: function(data) {
+            if (data.items.length > 0) {
+              $('#' + videoId).text(data.items[0].snippet.title);
+            } else {
+              $('#' + videoId).text('No title found for video');
+            }
+          },
+          error: function(jqXHR, textStatus, errorThrown) {
+            console.log(textStatus, + ' | ' + errorThrown);
+          }
+        });
+      });
+    </script>
   </body>
 </html>

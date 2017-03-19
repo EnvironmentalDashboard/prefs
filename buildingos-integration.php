@@ -1,15 +1,16 @@
+
 <?php
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
 if (isset($_POST['submit'])) {
   // Update cwd_bos table
-  $stmt = $db->prepare('UPDATE cwd_bos SET water_speed = ?, electricity_speed = ?, squirrel = ?, fish = ? LIMIT 1');
-  $stmt->execute(array($_POST['gauge_water'], $_POST['gauge_electricity'], $_POST['gauge_squirrel'], $_POST['gauge_fish']));
+  $stmt = $db->prepare('UPDATE cwd_bos SET water_speed = ?, electricity_speed = ?, squirrel = ?, fish = ? WHERE user_id = ? LIMIT 1');
+  $stmt->execute(array($_POST['gauge_water'], $_POST['gauge_electricity'], $_POST['gauge_squirrel'], $_POST['gauge_fish']), $user_id);
 }
 // Saving in a variable so data can be used multiple times on page
 $gauges = '';
-foreach ($db->query('SELECT id, title, title2 FROM gauges') as $gauge) {
+foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user_id}") as $gauge) {
   $gauge_name = ($gauge['title'] !== '') ? $gauge['title'] . $gauge['title2'] : 'Untitled gauge';
   $gauges .= "<option value='{$gauge['id']}'>{$gauge_name}</option>";
 }
@@ -72,7 +73,7 @@ foreach ($db->query('SELECT id, title, title2 FROM gauges') as $gauge) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
     <script>
-      <?php $current_values = $db->query('SELECT water_speed, electricity_speed, squirrel, fish FROM cwd_bos LIMIT 1')->fetch(); ?>
+      <?php $current_values = $db->query("SELECT water_speed, electricity_speed, squirrel, fish FROM cwd_bos WHERE user_id = {$user_id} LIMIT 1")->fetch(); ?>
       $(function() {
         $("#gauge_water").val('<?php echo $current_values['water_speed'] ?>');
         $("#gauge_electricity").val('<?php echo $current_values['electricity_speed'] ?>');

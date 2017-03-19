@@ -46,10 +46,11 @@ if (isset($_POST['add-landscape-component'])) {
   $uploadfile = $uploaddir . basename($filename);
   move_uploaded_file($_FILES['file']['tmp_name'], $uploadfile);
   $stmt = $db->prepare("INSERT INTO cwd_landscape_components
-    (component, pos, widthxheight, title, link, img, `text`, text_pos, `order`)
-    VALUES (:c, :p, :wh, :t, :l, :i, :txt, :txtp, :o)");
+    (user_id, component, pos, widthxheight, title, link, img, `text`, text_pos, `order`)
+    VALUES (:id, :c, :p, :wh, :t, :l, :i, :txt, :txtp, :o)");
   $stmt->execute(array(
-    ':c' => substr(str_shuffle(MD5(microtime())), 0, 10), // Generate random string for the component id
+    ':id' => $user_id,
+    ':c' => uniqid(),
     ':p' => $_POST['pos'],
     ':wh' => str_replace(' ', '', $_POST['wxh']),
     ':t' => $_POST['title'],
@@ -214,7 +215,7 @@ if (isset($_GET['enable'])) {
               </tr>
             </thead>
             <tbody>
-              <?php foreach ($db->query('SELECT * FROM cwd_landscape_components ORDER BY hidden DESC, removable, component') as $row) { ?>
+              <?php foreach ($db->query("SELECT * FROM cwd_landscape_components WHERE user_id = {$user_id} ORDER BY hidden DESC, removable, component") as $row) { ?>
               <tr>
                 <td><?php echo "<img class='img-fluid' src='{$row['img']}' />"; ?></td>
                 <td><?php echo $row['title'] ?></td>

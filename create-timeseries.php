@@ -2,21 +2,6 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
-function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fill2, $dasharr3, $fill3, $start, $ticks) {
-  $q = http_build_query(array(
-    'meter_id' => $meter_id,
-    'dasharr1' => $dasharr1,
-    'fill1' => $fill1,
-    'meter_id2' => $meter_id2,
-    'dasharr2' => $dasharr2,
-    'fill2' => $fill2,
-    'dasharr3' => $dasharr3,
-    'fill3' => $fill3,
-    'start' => $start,
-    'ticks' => $ticks
-  ));
-  return "http://{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/time-series/chart.php?" . $q;
-}
 
 if (isset($_POST['submit'])) {
   $q = array(
@@ -29,15 +14,18 @@ if (isset($_POST['submit'])) {
     ':dasharr3' => isset($_POST['dasharr3']) ? $_POST['dasharr3'] : null,
     ':fill3' => isset($_POST['fill3']) ? $_POST['fill3'] : null,
     ':start' => $_POST['start'] ? $_POST['start'] : 0,
-    ':ticks' => isset($_POST['ticks']) ? $_POST['ticks'] : 0
+    ':ticks' => isset($_POST['ticks']) ? $_POST['ticks'] : 0,
+    ':color1' => $_POST['color1'],
+    ':color2' => $_POST['color2'],
+    ':color3' => $_POST['color3']
   );
-  $stmt = $db->prepare('INSERT INTO time_series_configs (meter_id1, meter_id2, dasharr1, fill1, dasharr2, fill2, dasharr3, fill3, start, ticks)
-    VALUES (:meter_id1, :meter_id2, :dasharr1, :fill1, :dasharr2, :fill2, :dasharr3, :fill3, :start, :ticks)');
+  $stmt = $db->prepare('INSERT INTO time_series_configs (meter_id1, meter_id2, dasharr1, fill1, dasharr2, fill2, dasharr3, fill3, start, ticks, color1, color2, color3)
+    VALUES (:meter_id1, :meter_id2, :dasharr1, :fill1, :dasharr2, :fill2, :dasharr3, :fill3, :start, :ticks, :color1, :color2, :color3)');
   $stmt->execute($q);
 }
 
 $dropdown_html = '';
-foreach ($db->query('SELECT * FROM buildings ORDER BY name ASC') as $building) {
+foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY name ASC") as $building) {
   $stmt = $db->prepare('SELECT id, name FROM meters WHERE building_id = ? AND (num_using > 0 OR for_orb = 1) ORDER BY name');
   $stmt->execute(array($building['id']));
   $once = true;

@@ -12,8 +12,8 @@ if (!empty($_POST['name'])) {
     $uploadfile = $uploaddir . basename($filename);
     move_uploaded_file($_FILES['file']['tmp_name'], $uploadfile);
     $new_len = `python /var/www/html/oberlin/time-series/gifduration/gifduration.py /var/www/html/oberlin/time-series/images/{$filename}.gif`;
-    $stmt = $db->prepare('INSERT INTO time_series (name, bin1, bin2, bin3, bin4, bin5, length) VALUES (?, ?, ?, ?, ?, ?, ?)');
-    $stmt->execute(array($filename, $_POST['bin1'], $_POST['bin2'], $_POST['bin3'], $_POST['bin4'], $_POST['bin5'], $new_len));
+    $stmt = $db->prepare('INSERT INTO time_series (name, user_id, bin1, bin2, bin3, bin4, bin5, length) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    $stmt->execute(array($filename, $user_id, $_POST['bin1'], $_POST['bin2'], $_POST['bin3'], $_POST['bin4'], $_POST['bin5'], $new_len));
   }
 }
 ?>
@@ -172,11 +172,11 @@ if (!empty($_POST['name'])) {
             <tbody>
               <?php
               $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
-              $count = $db->query('SELECT COUNT(*) FROM time_series WHERE length > 0')->fetch()['COUNT(*)'];
+              $count = $db->query("SELECT COUNT(*) FROM time_series WHERE length > 0 AND user_id = {$user_id}")->fetch()['COUNT(*)'];
               $limit = 20;
               $offset = $limit * $page;
               $final_page = ceil($count / $limit);
-              foreach ($db->query("SELECT * FROM time_series WHERE length > 0 ORDER BY name LIMIT {$offset}, {$limit}") as $row) {
+              foreach ($db->query("SELECT * FROM time_series WHERE length > 0 AND user_id = {$user_id} ORDER BY name LIMIT {$offset}, {$limit}") as $row) {
                 echo '<tr>';
                   echo "<td><img class=\"img-fluid\" src=\"../time-series/images/{$row['name']}.gif\"></td>";
                   echo "<td><a href='../time-series/images/{$row['name']}.gif' target='_blank'>{$row['name']}</a></td>";

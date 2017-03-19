@@ -41,9 +41,6 @@
     <a class="nav-link <?php echo ($fn === 'orbs') ? 'active' : ''; ?>" href="orbs.php">Orbs</a>
   </li>
   <li class="nav-item">
-    <a class="nav-link <?php echo ($fn === 'manage-cron') ? 'active' : ''; ?>" href="manage-cron.php">Manage meters</a>
-  </li>
-  <li class="nav-item">
     <a class="nav-link <?php echo ($fn === 'docs') ? 'active' : ''; ?>" href="docs.php">Help</a>
   </li>
 </ul>

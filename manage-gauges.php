@@ -2,6 +2,8 @@
 // error_reporting(-1);
 // ini_set('display_errors', 'On');
 require '../includes/db.php';
+error_reporting(-1);
+ini_set('display_errors', 'On');
 function gaugeURL($rv_id, $meter_id, $color, $bg, $height, $width, $font_family, $title, $title2, $border_radius, $rounding, $ver, $units) {
   $q = http_build_query(array(
     'rv_id' => $rv_id,
@@ -18,7 +20,7 @@ function gaugeURL($rv_id, $meter_id, $color, $bg, $height, $width, $font_family,
     'ver' => $ver,
     'units' => $units,
   ));
-  return "http://104.131.103.232/oberlin/gauges/gauge.php?" . $q;
+  return "http://104.131.103.232/".basename(dirname(__DIR__))."/gauges/gauge.php?" . $q;
 }
 if (isset($_POST['edit'])) {
   $q = array(
@@ -52,7 +54,7 @@ if (isset($_POST['delete'])) {
 }
 
 $dropdown_html = '';
-$buildings = $db->query('SELECT * FROM buildings ORDER BY name ASC');
+$buildings = $db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY name ASC");
 foreach ($buildings->fetchAll() as $building) {
   $dropdown_html .= "<optgroup label='{$building['name']}'>";
   $stmt = $db->prepare('SELECT id, name FROM meters WHERE building_id = ?');
@@ -188,12 +190,12 @@ foreach ($buildings->fetchAll() as $building) {
           <?php
           $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
           if (isset($_GET['search']) && trim($_GET['search']) !== '') {
-            $count = $db->prepare('SELECT COUNT(*) FROM gauges WHERE CONCAT(title, " ", title2) LIKE ?');
-            $count->execute(array("%{$_GET['search']}%"));
+            $count = $db->prepare('SELECT COUNT(*) FROM gauges WHERE user_id = ? AND CONCAT(title, " ", title2) LIKE ?');
+            $count->execute(array($user_id, "%{$_GET['search']}%"));
             $count = $count->fetch()['COUNT(*)'];
           }
           else {
-            $count = $db->query('SELECT COUNT(*) FROM gauges')->fetch()['COUNT(*)'];
+            $count = $db->query("SELECT COUNT(*) FROM gauges WHERE user_id = {$user_id}")->fetch()['COUNT(*)'];
           }
           $limit = 5;
           $offset = $limit * $page;
@@ -216,20 +218,20 @@ foreach ($buildings->fetchAll() as $building) {
               $orderby = 'id DESC';
               break;
           }
-          $search = (empty($_GET['search'])) ? ' ' : ' WHERE CONCAT(title, " ", title2) LIKE ? '; // Use parameters for sql injection!
-          $stmt = $db->prepare("SELECT * FROM gauges{$search}ORDER BY {$orderby} LIMIT {$offset}, {$limit}");
-          if ($search === ' ') {
-            $stmt->execute();
+          $search = (empty($_GET['search'])) ? 'WHERE user_id = ?' : 'WHERE user_id = ? AND CONCAT(title, " ", title2) LIKE ? '; // Use parameters for sql injection!
+          $stmt = $db->prepare("SELECT * FROM gauges {$search} ORDER BY {$orderby} LIMIT {$offset}, {$limit}");
+          if (empty($_GET['search'])) {
+            $stmt->execute(array($user_id));
           }
           else {
-            $stmt->execute(array("%{$_GET['search']}%"));
+            $stmt->execute(array($user_id, "%{$_GET['search']}%"));
           }
           if ($stmt->rowCount() === 0) {
             echo '<h1 class="text-muted" style="margin-top:20px;margin-bottom:50px">No Results</h1>';
           }
           else {
             ?>
-            <table class="table">
+            <table class="table table-responsive" style="width: 100%">
               <thead>
                 <tr>
                   <th>Meter</th>

@@ -41,31 +41,25 @@ if (isset($_POST['refreshdb'])) {
       <div class="container">
         <div class="row">
           <div class="col-xs-12">
-            <h1>Documentation <small class="text-muted">for <?php echo ucwords(basename(dirname(__DIR__))); //echo ucwords(implode(' ', array_slice($domain, 0, count($domain) - 2))); ?></small></h1>
+            <h1>Documentation <small class="text-muted">for <?php echo ucwords(explode('/', $_SERVER['REQUEST_URI'])[1]); ?></small></h1>
             <hr>
 
             <h3>Meters</h3>
-            <p>Rather than querying the BuildingOS API directly, a scheduled task on the server periodically fetches new data from the API and stores it in a database for quicker access. Data is stored by different lengths and resolutions:</p>
+            <p>Rather than querying the BuildingOS API directly, a scheduled task (cron job) on the server periodically fetches new meter data from the API and stores it in a database for quicker access. Data is stored by different lengths and resolutions:</p>
             <ul>
-              <li><a href="<?php echo "http://{$_SERVER[HTTP_HOST]}/scripts/jobs/minute.php"; ?>" target="_blank">1 minute resolution data is stored for 2 hours</a> <small>(where available; some meters only have 2 or 3 minute resolution)</small></li>
-              <li><a  href="<?php echo "http://{$_SERVER[HTTP_HOST]}/scripts/jobs/quarterhour.php"; ?>" target="_blank">15 minute resolution data is stored for 2 weeks</a></li>
+              <li><a href="http://http://104.131.103.232/oberlin/scripts/jobs/minute.php" target="_blank">1 minute resolution data is stored for 2 hours</a> <small>(where available; some meters only have 2 or 3 minute resolution)</small></li>
+              <li><a  href="http://http://104.131.103.232/oberlin/scripts/jobs/quarterhour.php" target="_blank">15 minute resolution data is stored for 2 weeks</a></li>
               <!-- Might want to expand 15 min res if many gauges go back more than 2 weeks -->
-              <li><a href="<?php echo "http://{$_SERVER[HTTP_HOST]}/scripts/jobs/hour.php"; ?>" target="_blank">Hourly resolution data is stored for 2 months</a></li>
-              <li><a href="<?php echo "http://{$_SERVER[HTTP_HOST]}/scripts/jobs/month.php"; ?>" target="_blank">Monthly resolution data is stored for 2 years</a></li>
+              <li><a href="http://http://104.131.103.232/oberlin/scripts/jobs/hour.php" target="_blank">Hourly resolution data is stored for 2 months</a></li>
+              <li><a href="http://http://104.131.103.232/oberlin/scripts/jobs/month.php" target="_blank">Monthly resolution data is stored for 2 years</a></li>
               <small class="text-muted">The above links will open up a blank page in a new tab and manually run the described job</small>
             </ul>
-            <p>When creating gauges keep the above limitations in mind as gauges that look back further than 2 weeks will only recieve one data point per hour.</p>
-            <h5 id="manage-meters"><a href="manage-cron.php">Manage meters</a></h5>
-            <p>To not waste server resources updating data for meters not being used each meter has a <code>num_using</code> number associated with it denoting the number of gauges and other content using its data. Meters whose <code>num_using</code> is 0 will be ignored by the scheduled tasks. The <code>num_using</code> a meter has is automatically updated when a gauge is created, edited, or deleted. However, any meters <code>num_using</code> number can be reset to 0 (meaning the meters data will not be collected by the scheduled task) if unchecked or 1 (meaning the data will be collected) if checked on the manage meters page. Note that resetting a meter to 0 will break anything using the data until it is checked (and the <a href="manage-cron.php">scheduled task has run</a>) again. However, gauges will continue to work regardless as they fallback to using the API when data can not be found in the database.</p>
-            <p>Meters using external data can also be added to buildings by uploading a PHP script that updates the <code>meter</code> and <code>meter_data</code> tables in the database. Each script is pre-connected to the database and the PDO connection is stored in a variable named <code>$db</code> e.g. <code>$db->query('SELECT * FROM meters');</code>.</p>
+            <h5>Relative value</h5>
+            <p>In addition to caching raw data, the cron jobs calculate the relative value for each record in the relative_values table so that a meters relative value may be quickly computed. The calculation of the relative value is where the current value falls in an ordered list of historical data from the current hour. For example, if the ordered list of historical data is <code>62.5, 63, 65, 66, 66.5, 70</code> and the current reading is 64, the relative value would be 2/7 (where the current value falls in the 0-based sorted list divided by the number of items in the list) or 28%.</p>
 
             <hr style="margin-top:20px;margin-bottom:20px">
 
             <h3>Gauges</h3>
-            <h5><a href="create-gauge.php">Create gauge</a></h5>
-            <p>In the create gauge page gauges can be created for Citywide Dashboard and elsewhere. Gauges can be customized to ignore data <a href="create-gauge.php#start">before a certain date</a> as well as data <a href="create-gauge.php#data_interval">recorded on a day in a different group than the current day</a>. While only a few already defined groupings can be used when creating a guage, a custom grouping can be entered when <a href="manage-gauges.php">editing a gauge</a>. Groups are defined by square brackets and seperated by commas. Days in a group are written as the number that day is in the week (e.g. Sunday would be 1 because it's the first day of the week and Saturday would be 7) and seperated by commas. For example, to group weekdays and weekends in two seperate groups, one would write <code>[1,7], [2,3,4,5,6]</code>.</p>
-            <h5>Relative value</h5>
-            <p>A gauges relative value is used to position the circular indicator at the bottom of the gauge. The calculation of the relative value is where the current value falls in an ordered list of historical data from the current hour. For example, if the ordered list of historical data is <code>62.5, 63, 65, 66, 66.5, 70</code> and the current reading is 64, the relative value would be 2/7 (where the current value falls in the 0-based sorted list divided by the number of items in the list) or 28%</p>
             <h5>HTML vs SVG</h5>
             <p>There are both HTML and SVG implementations of the gauges available for different contexts. Whereas the HTML (webpage) versions need an <code>iframe</code> to be embedded, the SVG version can be embedded as an image. Additionally, the SVG gauges are much more performant compared to the HTML version. However, the <a href="http://github.hubspot.com/odometer/docs/welcome/">odometer.js</a> plugin does not work with SVGs, meaning the animation in the HTML version does not work in the SVG version.</p>
 

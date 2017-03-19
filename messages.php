@@ -10,13 +10,12 @@ require '../includes/db.php';
 if (isset($_POST['gauge'])) {
   $column = $_POST['resource'] . '_messages'; // Possible SQL injection vulnerability
   // Update the meter ID in the cwd_bos table
-  $stmt = $db->prepare('UPDATE cwd_bos SET ' . $column . ' = ? LIMIT 1');
-  $stmt->execute(array($_POST['gauge']));
+  $stmt = $db->prepare('UPDATE cwd_bos SET ' . $column . ' = ? WHERE user_id = ? LIMIT 1');
+  $stmt->execute(array($_POST['gauge'], $user_id));
 }
 if (isset($_POST['add-message'])) {
-  $stmt = $db->prepare('INSERT INTO cwd_messages (resource, message, prob1, prob2, prob3, prob4, prob5)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)');
-  $stmt->execute(array($_POST['resource'], $_POST['new-message'], $_POST['new-prob1'], $_POST['new-prob2'], $_POST['new-prob3'], $_POST['new-prob4'], $_POST['new-prob5']));
+  $stmt = $db->prepare('INSERT INTO cwd_messages (user_id, resource, message, prob1, prob2, prob3, prob4, prob5) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+  $stmt->execute(array($user_id, $_POST['resource'], $_POST['new-message'], $_POST['new-prob1'], $_POST['new-prob2'], $_POST['new-prob3'], $_POST['new-prob4'], $_POST['new-prob5']));
 }
 if (isset($_POST['edit'])) {
   $stmt = $db->prepare('UPDATE cwd_messages
@@ -30,7 +29,7 @@ if (isset($_POST['delete-btn'])) {
 }
 // Saving in a variable so data can be used multiple times on page
 $gauges = '';
-foreach ($db->query('SELECT id, title, title2 FROM gauges') as $gauge) {
+foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user_id}") as $gauge) {
   $gauge_name = ($gauge['title'] !== '') ? $gauge['title'] . $gauge['title2'] : 'Untitled gauge';
   $gauges .= "<option value='{$gauge['id']}'>{$gauge_name}</option>";
 }
@@ -154,7 +153,7 @@ foreach ($db->query('SELECT id, title, title2 FROM gauges') as $gauge) {
             </tr>
           </thead>
           <tbody>
-            <?php foreach ($db->query("SELECT * FROM cwd_messages WHERE resource = '{$resource}'") as $row) {
+            <?php foreach ($db->query("SELECT * FROM cwd_messages WHERE resource = '{$resource}' AND user_id = {$user_id}") as $row) {
               echo '<tr>';
                 echo "<td>{$row['message']}</td>
                 <td>{$row['prob1']}</td>
@@ -278,7 +277,7 @@ foreach ($db->query('SELECT id, title, title2 FROM gauges') as $gauge) {
       $('#landing_dropdown, #electricity_dropdown, #gas_dropdown, #stream_dropdown, #water_dropdown, #weather_dropdown').change(function(e) {
         $('#' + $(this).attr('id') + '_form').submit();
       });
-      <?php $current_values = $db->query('SELECT landing_messages, electricity_messages, gas_messages, stream_messages, water_messages, weather_messages FROM cwd_bos LIMIT 1')->fetch(); ?>
+      <?php $current_values = $db->query("SELECT landing_messages, electricity_messages, gas_messages, stream_messages, water_messages, weather_messages FROM cwd_bos WHERE user_id = {$user_id} LIMIT 1")->fetch(); ?>
       $(function() {
         $("#landing_dropdown").val('<?php echo $current_values['landing_messages'] ?>');
         $("#electricity_dropdown").val('<?php echo $current_values['electricity_messages'] ?>');

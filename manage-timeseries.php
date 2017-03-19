@@ -2,7 +2,7 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
-function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fill2, $dasharr3, $fill3, $start, $ticks) {
+function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fill2, $dasharr3, $fill3, $start, $ticks, $color1, $color2, $color3) {
   $q = http_build_query(array(
     'meter_id' => $meter_id,
     'dasharr1' => $dasharr1,
@@ -13,9 +13,34 @@ function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fil
     'dasharr3' => $dasharr3,
     'fill3' => $fill3,
     'start' => $start,
-    'ticks' => $ticks
+    'ticks' => $ticks,
+    'color1' => $color1,
+    'color2' => $color2,
+    'color3' => $color3
   ));
   return "http://{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/time-series/chart.php?" . $q;
+}
+function timeseriesURL2($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fill2, $dasharr3, $fill3, $start, $ticks, $color1, $color2, $color3) {
+  $q = http_build_query(array(
+    'meter_id' => $meter_id,
+    'dasharr1' => $dasharr1,
+    'fill1' => $fill1,
+    'meter_id2' => $meter_id2,
+    'dasharr2' => $dasharr2,
+    'fill2' => $fill2,
+    'dasharr3' => $dasharr3,
+    'fill3' => $fill3,
+    'start' => $start,
+    'ticks' => $ticks,
+    'color1' => $color1,
+    'color2' => $color2,
+    'color3' => $color3
+  ));
+  return "http://{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/time-series/index.php?" . $q;
+}
+if (isset($_POST['submit'])) {
+  $stmt = $db->prepare('DELETE FROM time_series_configs WHERE id = ?');
+  $stmt->execute(array($_POST['id']));
 }
 ?>
 <!DOCTYPE html>
@@ -45,16 +70,26 @@ function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fil
               <tr>
                 <th>&nbsp;</th>
                 <th>URL</th>
+                <th>&nbsp;</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <?php foreach ($db->query('SELECT * FROM time_series_configs') as $row) {
-                  $url = timeseriesURL($row['meter_id1'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks']);
+              <?php foreach ($db->query('SELECT * FROM time_series_configs') as $row) {
+                echo "<tr>";
+                  $url = timeseriesURL($row['meter_id1'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3']);
+                  $url2 = timeseriesURL2($row['meter_id1'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3']);
                   echo "<td><object style='max-width:400px' type='image/svg+xml' data='{$url}'></object></td>\n";
-                  echo "<td>{$url}</td>";
-                } ?>
-              </tr>
+                  echo "<td>
+                  <a style='word-break: break-all;' href='{$url2}' target='_blank'>{$url2}</a>
+                  </td>";
+                  echo "<td>
+                        <form action='' method='POST'>
+                        <input type='hidden' name='id' value='{$row['id']}'>
+                        <input type='submit' class='btn btn-danger' value='Delete' name='submit'>
+                        </form>
+                        </td>";
+                echo "</tr>";
+              } ?>
             </tbody>
           </table>
         </div>

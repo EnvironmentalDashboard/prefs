@@ -6,7 +6,7 @@ require '../includes/db.php';
 if (isset($_POST['submit'])) {
   // Update cwd_bos table
   $stmt = $db->prepare('UPDATE cwd_bos SET water_speed = ?, electricity_speed = ?, squirrel = ?, fish = ? WHERE user_id = ? LIMIT 1');
-  $stmt->execute(array($_POST['gauge_water'], $_POST['gauge_electricity'], $_POST['gauge_squirrel'], $_POST['gauge_fish']), $user_id);
+  $stmt->execute(array($_POST['gauge_water'], $_POST['gauge_electricity'], $_POST['gauge_squirrel'], $_POST['gauge_fish'], $user_id));
 }
 // Saving in a variable so data can be used multiple times on page
 $gauges = '';
@@ -42,25 +42,25 @@ foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user
           <form action="" method="POST">
             <fieldset class="form-group">
               <label for="gauge_water">Select the gauge to control the speed of the water</label>
-              <select name="gauge_water" id="gauge_water" class="c-select">
+              <select name="gauge_water" id="gauge_water" class="custom-select">
                 <?php echo $gauges; ?>
               </select>
             </fieldset>
             <fieldset class="form-group">
               <label for="gauge_electricity">Select the gauge to control the speed of the electricity flow</label>
-              <select name="gauge_electricity" id="gauge_electricity" class="c-select">
+              <select name="gauge_electricity" id="gauge_electricity" class="custom-select">
                 <?php echo $gauges; ?>
               </select>
             </fieldset>
             <fieldset class="form-group">
               <label for="gauge_fish">Select the gauge to control the mood of Wally Walleye</label>
-              <select name="gauge_fish" id="gauge_fish" class="c-select">
+              <select name="gauge_fish" id="gauge_fish" class="custom-select">
                 <?php echo $gauges; ?>
               </select>
             </fieldset>
             <fieldset class="form-group">
               <label for="gauge_squirrel">Select the gauge to control the mood of Flash the Energy Squirrel</label>
-              <select name="gauge_squirrel" id="gauge_squirrel" class="c-select">
+              <select name="gauge_squirrel" id="gauge_squirrel" class="custom-select">
                 <?php echo $gauges; ?>
               </select>
             </fieldset>

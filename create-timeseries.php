@@ -5,6 +5,7 @@ require '../includes/db.php';
 
 if (isset($_POST['submit'])) {
   $q = array(
+    ':user_id' => $user_id,
     ':meter_id1' => $_POST['meter_id'],
     ':dasharr1' => isset($_POST['dasharr1']) ? $_POST['dasharr1'] : null,
     ':fill1' => isset($_POST['fill1']) ? $_POST['fill1'] : null,
@@ -19,14 +20,23 @@ if (isset($_POST['submit'])) {
     ':color2' => $_POST['color2'],
     ':color3' => $_POST['color3']
   );
-  $stmt = $db->prepare('INSERT INTO time_series_configs (meter_id1, meter_id2, dasharr1, fill1, dasharr2, fill2, dasharr3, fill3, start, ticks, color1, color2, color3)
-    VALUES (:meter_id1, :meter_id2, :dasharr1, :fill1, :dasharr2, :fill2, :dasharr3, :fill3, :start, :ticks, :color1, :color2, :color3)');
+  $stmt = $db->prepare('INSERT INTO time_series_configs (user_id, meter_id1, meter_id2, dasharr1, fill1, dasharr2, fill2, dasharr3, fill3, start, ticks, color1, color2, color3)
+    VALUES (:user_id, :meter_id1, :meter_id2, :dasharr1, :fill1, :dasharr2, :fill2, :dasharr3, :fill3, :start, :ticks, :color1, :color2, :color3)');
   $stmt->execute($q);
+  if ($_POST['meter_id'] === $_POST['meter_id2']) {
+    $stmt = $db->prepare('UPDATE meters SET timeseries_using = timeseries_using + 1 WHERE id = ?');
+    $stmt->execute(array($_POST['meter_id']));
+  } else {
+    $stmt = $db->prepare('UPDATE meters SET timeseries_using = timeseries_using + 1 WHERE id = ?');
+    $stmt->execute(array($_POST['meter_id']));
+    $stmt = $db->prepare('UPDATE meters SET timeseries_using = timeseries_using + 1 WHERE id = ?');
+    $stmt->execute(array($_POST['meter_id2']));
+  }
 }
 
 $dropdown_html = '';
 foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY name ASC") as $building) {
-  $stmt = $db->prepare('SELECT id, name FROM meters WHERE building_id = ? AND (num_using > 0 OR for_orb = 1) ORDER BY name');
+  $stmt = $db->prepare('SELECT id, name FROM meters WHERE building_id = ? ORDER BY name');
   $stmt->execute(array($building['id']));
   $once = true;
   foreach($stmt->fetchAll() as $meter) {
@@ -72,7 +82,7 @@ foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY
                 <select style="width:100%" name="meter_id" id="meter_id" class="custom-select">
                   <?php echo $dropdown_html ?>
                 </select>
-                <input type="color" class="form-control" name="color1" value="#2ecc71" id="color1" style="margin-top:10px;margin-bottom:5px;height: 50px">
+                <input type="color" class="form-control" name="color1" value="#2ecc71" id="color1" style="margin-top:10px;margin-bottom:5px;height: 40px;padding: 0px;border: none">
                 <label class="custom-control custom-checkbox">
                   <input id="dasharr1" name="dasharr1" type="checkbox" class="custom-control-input">
                   <span class="custom-control-indicator"></span>
@@ -92,7 +102,7 @@ foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY
                 <select style="width:100%" name="meter_id2" id="meter_id2" class="custom-select">
                   <?php echo $dropdown_html ?>
                 </select>
-                <input type="color" class="form-control" name="color3" value="#33A7FF" id="color3" style="margin-top:10px;margin-bottom:5px;height: 50px">
+                <input type="color" class="form-control" name="color3" value="#33A7FF" id="color3" style="margin-top:10px;margin-bottom:5px;height: 40px;padding: 0px;border: none">
                 <label class="custom-control custom-checkbox">
                   <input id="dasharr2" name="dasharr2" type="checkbox" class="custom-control-input">
                   <span class="custom-control-indicator"></span>
@@ -109,7 +119,7 @@ foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY
             <div class="form-group row">
               <label class="col-sm-3 form-control-label">Historical chart</label>
               <div class="col-sm-9">
-                <input type="color" class="form-control" name="color2" value="#bdc3c7" id="color2" style="margin-bottom:5px;height: 50px">
+                <input type="color" class="form-control" name="color2" value="#bdc3c7" id="color2" style="margin-bottom:5px;height: 40px;padding: 0px;border: none">
                 <label class="custom-control custom-checkbox">
                   <input id="dasharr3" name="dasharr3" type="checkbox" class="custom-control-input">
                   <span class="custom-control-indicator"></span>

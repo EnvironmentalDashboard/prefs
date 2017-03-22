@@ -101,7 +101,7 @@ foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user
       <div style="clear: both;height: 20px"></div>
       <div class="row">
         <div class="col-sm-3">
-          <ul class="nav flex-column">
+          <ul class="nav nav-pills flex-column">
             <li class="nav-item">
               <a class="nav-link active" href="#" id="landing">Landing</a>
             </li>
@@ -126,12 +126,13 @@ foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user
           <?php
           $resources = array('landing', 'electricity', 'gas', 'stream', 'water', 'weather');
           foreach ($resources as $resource) {
-            echo "<form action='' method='POST' class='form-inline'
+            echo "<form action='' method='POST'
                   id='{$resource}_dropdown_form'";
             echo ($resource === 'landing') ? " style='margin-bottom:10px'>" : " style='display:none;margin-bottom:10px'>";
+            echo "<p>Select a gauge to be used as the resource for determining <attr style='cursor:help;text-decoration:underline' title='A message is displayed if it has a value greater than 0 in the appriopriate bin. The appriopriate bin is determined by the relative value of the selected gauge (bin 1 = lowest use, bin 5 = highest use). Additionally, messages with a higher bin will usually be shown before messages with a lower bin, but there is a degree of randomness.'>bin order</attr>. If there are no gauges available, you need to <a href='create-gauge.php'>create one</a>.</p>";
             echo "<div class='form-group'>
                     <input type='hidden' name='resource' value='{$resource}'>
-                    <select name='gauge' class='c-select' id='{$resource}_dropdown' style='margin-bottom:10px'>
+                    <select name='gauge' class='custom-select' id='{$resource}_dropdown' style='margin-bottom:10px'>
                       {$gauges}
                     </select>
                   </div>

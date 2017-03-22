@@ -2,8 +2,6 @@
 // error_reporting(-1);
 // ini_set('display_errors', 'On');
 require '../includes/db.php';
-error_reporting(-1);
-ini_set('display_errors', 'On');
 function gaugeURL($rv_id, $meter_id, $color, $bg, $height, $width, $font_family, $title, $title2, $border_radius, $rounding, $ver, $units) {
   $q = http_build_query(array(
     'rv_id' => $rv_id,
@@ -40,14 +38,14 @@ if (isset($_POST['edit'])) {
   );
   $stmt = $db->prepare('UPDATE gauges SET meter_id = :meter_id, color = :color, bg = :bg, height = :height, width = :width, font_family = :font_family, title = :title, title2 = :title2, border_radius = :border_radius, rounding = :rounding, ver = :ver, units = :units, start = :start WHERE id = :id');
   $stmt->execute($q);
-  $stmt = $db->prepare('UPDATE meters SET num_using = num_using + 1 WHERE id = ?');
+  $stmt = $db->prepare('UPDATE meters SET gauges_using = gauges_using + 1 WHERE id = ?');
   $stmt->execute(array($_POST['edit-meter']));
-  $stmt = $db->prepare('UPDATE meters SET num_using = num_using - 1 WHERE id = ? AND num_using != 0');
+  $stmt = $db->prepare('UPDATE meters SET gauges_using = gauges_using - 1 WHERE id = ? AND gauges_using != 0');
   $stmt->execute(array($_POST['meter-id']));
 }
 
 if (isset($_POST['delete'])) {
-  $stmt = $db->prepare('UPDATE meters SET num_using = num_using - 1 WHERE id = ?');
+  $stmt = $db->prepare('UPDATE meters SET gauges_using = gauges_using - 1 WHERE id = ?');
   $stmt->execute(array($_POST['meterid']));
   $stmt = $db->prepare('DELETE FROM gauges WHERE id = ?');
   $stmt->execute(array($_POST['gaugeid']));
@@ -82,10 +80,10 @@ foreach ($buildings->fetchAll() as $building) {
         <div class="modal-content">
           <form action="" method="POST">
             <div class="modal-header">
+              <h4 class="modal-title">Edit gauge</h4>
               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
               </button>
-              <h4 class="modal-title">Edit gauge</h4>
             </div>
             <div class="modal-body">
               <input type="hidden" value="" id="gauge-id" name="gauge-id">
@@ -93,17 +91,17 @@ foreach ($buildings->fetchAll() as $building) {
               <input type="hidden" value="" id="rv-id" name="rv-id">
               <div class="form-group">
                 <label for="edit-meter">Meter</label>
-                <select style="width:100%" name="edit-meter" id="edit-meter" class="c-select">
+                <select style="width:100%" name="edit-meter" id="edit-meter" class="custom-select">
                   <?php echo $dropdown_html; ?>
                 </select>
               </div>
               <div class="form-group">
                 <label for="edit-color">Color</label>
-                <input type="text" class="form-control" id="edit-color" name="edit-color" value="">
+                <input type="color" class="form-control" id="edit-color" name="edit-color" value="" style="height:50px">
               </div>
               <div class="form-group">
                 <label for="edit-bg">Background</label>
-                <input type="text" class="form-control" id="edit-bg" name="edit-bg" value="">
+                <input type="color" class="form-control" id="edit-bg" name="edit-bg" value="" style="height:50px">
               </div>
               <div class="form-group">
                 <label for="edit-height">Height</label>
@@ -137,15 +135,15 @@ foreach ($buildings->fetchAll() as $building) {
                 <label for="edit-units">Units</label>
                 <input type="text" class="form-control" id="edit-units" name="edit-units" value="">
               </div>
-              <label class="c-input c-radio">
-                <input id="edit-html" value="html" name="edit-radio" type="radio">
-                <span class="c-indicator"></span>
-                HTML version
+              <label class="custom-control custom-radio">
+                <input id="edit-html" value="html" name="edit-radio" type="radio" class="custom-control-input">
+                <span class="custom-control-indicator"></span>
+                <span class="custom-control-description">HTML version</span>
               </label>
-              <label class="c-input c-radio">
-                <input id="edit-svg" value="svg" name="edit-radio" type="radio">
-                <span class="c-indicator"></span>
-                SVG version
+              <label class="custom-control custom-radio">
+                <input id="edit-svg" value="svg" name="edit-radio" type="radio" class="custom-control-input">
+                <span class="custom-control-indicator"></span>
+                <span class="custom-control-description">SVG version</span>
               </label>
             </div>
             <div class="modal-footer">
@@ -159,15 +157,17 @@ foreach ($buildings->fetchAll() as $building) {
 
     <div class="container">
       <div class="row">
-        <div class="col-xs-12">
+        <div class="col-sm-12">
           <img src="images/env_logo.png" class="img-fluid" style="margin-bottom:15px">
           <?php include 'includes/navbar.php'; ?>
         </div>
       </div>
       <div class="row">
-        <div class="col-xs-12">
-          <h1 style="display:inline;">Gauges</h1>
-          <form action="" method="GET" class="form-inline pull-xs-right" style="margin-top:20px">
+        <div class="col-sm-6">
+          <h1>Gauges</h1>
+        </div>
+        <div class="col-sm-6">
+          <form action="" method="GET" class="form-inline" style="margin-top:10px; float: right;">
             <input type="hidden" name="sort" value="<?php echo (empty($_GET['page'])) ? '' : $_GET['sort'] ?>">
             <input type="hidden" name="page" value="1">
             <div class="form-group">
@@ -176,7 +176,7 @@ foreach ($buildings->fetchAll() as $building) {
             <input type="submit" class="btn btn-primary" value="Search">
             <small style="display:block" class="text-muted" id="num-results"></small>
           </form>
-          <form action="" method="GET" class="form-inline" style="margin-top:10px">
+          <form action="" method="GET" class="form-inline" style="margin-top: 10px;margin-right:10pxfloat: right;">
             <div class="form-group">
               <select class="custom-select" name="sort" id="sortform">
                 <option value="newest" <?php echo (empty($_GET['sort']) || $_GET['sort'] === 'newest') ? 'selected' : ''; ?>>Newest first</option>
@@ -187,6 +187,10 @@ foreach ($buildings->fetchAll() as $building) {
             </div>
             <?php if (isset($_GET['search'])) { echo "<input type=\"hidden\" name=\"search\" value=\"{$_GET['search']}\">"; } ?>
           </form>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-12">
           <?php
           $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
           if (isset($_GET['search']) && trim($_GET['search']) !== '') {

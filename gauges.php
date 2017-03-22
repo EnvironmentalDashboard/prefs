@@ -42,7 +42,7 @@ foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user
       <div style="clear: both;height: 20px"></div>
       <div class="row">
         <div class="col-sm-3">
-          <ul class="nav flex-column">
+          <ul class="nav flex-column nav-pills">
             <li class="nav-item">
               <a class="nav-link active" href="#" id="landing">Landing</a>
             </li>
@@ -64,11 +64,12 @@ foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user
           </ul>
         </div>
         <div class="col-sm-9">
+          <p>Select the gauges shown on the right of CWD. Gauge 1 is on the top, gauge 4 is on the bottom.</p>
           <?php foreach ($db->query("SELECT resource, gauge1, gauge2, gauge3, gauge4, `on` FROM cwd_states WHERE user_id = {$user_id}") as $row) { ?>
             <form action="" method="POST" id="<?php echo $row['resource'] ?>_form"<?php if ($row['resource'] !== 'landing') { echo ' style="display:none"';} ?>>
               <fieldset class="form-group">
                 <label for="<?php echo $row['resource'] ?>_gauge1">Select gauge 1</label>
-                <select class="c-select" style="width:100%" id="<?php echo $row['resource'] ?>_gauge1" name="gauge1">
+                <select class="custom-select" style="width:100%" id="<?php echo $row['resource'] ?>_gauge1" name="gauge1">
                   <?php
                   foreach ($gauges as $gauge) {
                     if ($gauge['id'] === $row['gauge1']) {
@@ -84,7 +85,7 @@ foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user
               </fieldset>
               <fieldset class="form-group">
                 <label for="<?php echo $row['resource'] ?>_gauge2">Select gauge 2</label>
-                <select class="c-select" style="width:100%" id="<?php echo $row['resource'] ?>_gauge2" name="gauge2">
+                <select class="custom-select" style="width:100%" id="<?php echo $row['resource'] ?>_gauge2" name="gauge2">
                   <?php
                   foreach ($gauges as $gauge) {
                     if ($gauge['id'] === $row['gauge2']) {
@@ -100,7 +101,7 @@ foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user
               </fieldset>
               <fieldset class="form-group">
                 <label for="<?php echo $row['resource'] ?>_gauge3">Select gauge 3</label>
-                <select class="c-select" style="width:100%" id="<?php echo $row['resource'] ?>_gauge3" name="gauge3">
+                <select class="custom-select" style="width:100%" id="<?php echo $row['resource'] ?>_gauge3" name="gauge3">
                   <?php
                   foreach ($gauges as $gauge) {
                     if ($gauge['id'] === $row['gauge3']) {
@@ -116,7 +117,7 @@ foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user
               </fieldset>
               <fieldset class="form-group">
                 <label for="<?php echo $row['resource'] ?>_gauge4">Select gauge 4</label>
-                <select class="c-select" style="width:100%" id="<?php echo $row['resource'] ?>_gauge4" name="gauge4">
+                <select class="custom-select" style="width:100%" id="<?php echo $row['resource'] ?>_gauge4" name="gauge4">
                   <?php
                   foreach ($gauges as $gauge) {
                     if ($gauge['id'] === $row['gauge4']) {
@@ -131,6 +132,7 @@ foreach ($db->query("SELECT id, title, title2 FROM gauges WHERE user_id = {$user
                 </select>
               </fieldset>
               <?php if ($row['resource'] !== 'landing') { ?>
+              Resource visability
               <div class="c-inputs-stacked">
                 <label class="c-input c-radio">
                   <input id="yes" value="yes" name="radio-stacked" type="radio"<?php if ($row['on'] === '1') { echo " checked"; } ?>>

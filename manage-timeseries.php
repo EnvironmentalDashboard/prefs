@@ -18,7 +18,7 @@ function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fil
     'color2' => $color2,
     'color3' => $color3
   ));
-  return "http://{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/time-series/chart.php?" . $q;
+  return "http://{$_SERVER['HTTP_HOST']}/".explode('/', $_SERVER['REQUEST_URI'])[1]."/time-series/chart.php?" . $q;
 }
 function timeseriesURL2($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fill2, $dasharr3, $fill3, $start, $ticks, $color1, $color2, $color3) {
   $q = http_build_query(array(
@@ -36,11 +36,17 @@ function timeseriesURL2($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fi
     'color2' => $color2,
     'color3' => $color3
   ));
-  return "http://{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/time-series/index.php?" . $q;
+  return "http://{$_SERVER['HTTP_HOST']}/".explode('/', $_SERVER['REQUEST_URI'])[1]."/time-series/index.php?" . $q;
 }
 if (isset($_POST['submit'])) {
   $stmt = $db->prepare('DELETE FROM time_series_configs WHERE id = ?');
   $stmt->execute(array($_POST['id']));
+  $stmt = $db->prepare('UPDATE meters SET timeseries_using = timeseries_using - 1 WHERE id = ?');
+  $stmt->execute(array($_POST['meter_id1']));
+  if ($_POST['meter_id1'] !== $_POST['meter_id2']) {
+    $stmt = $db->prepare('UPDATE meters SET timeseries_using = timeseries_using - 1 WHERE id = ?');
+    $stmt->execute(array($_POST['meter_id2']));
+  }
 }
 ?>
 <!DOCTYPE html>
@@ -74,7 +80,7 @@ if (isset($_POST['submit'])) {
               </tr>
             </thead>
             <tbody>
-              <?php foreach ($db->query('SELECT * FROM time_series_configs') as $row) {
+              <?php foreach ($db->query("SELECT * FROM time_series_configs WHERE user_id = {$user_id}") as $row) {
                 echo "<tr>";
                   $url = timeseriesURL($row['meter_id1'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3']);
                   $url2 = timeseriesURL2($row['meter_id1'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3']);
@@ -85,6 +91,8 @@ if (isset($_POST['submit'])) {
                   echo "<td>
                         <form action='' method='POST'>
                         <input type='hidden' name='id' value='{$row['id']}'>
+                        <input type='hidden' name='meter_id1' value='{$row['meter_id1']}'>
+                        <input type='hidden' name='meter_id2' value='{$row['meter_id2']}'>
                         <input type='submit' class='btn btn-danger' value='Delete' name='submit'>
                         </form>
                         </td>";

@@ -34,20 +34,24 @@ if (isset($_POST['submit'])) {
   $stmt = $db->prepare('INSERT INTO gauges (user_id, rv_id, meter_id, color, bg, height, width, font_family, title, title2, border_radius, rounding, ver, units)
     VALUES (:user_id, :rv_id, :meter_id, :color, :bg, :height, :width, :font_family, :title, :title2, :border_radius, :rounding, :ver, :units)');
   $stmt->execute($q);
-  $stmt = $db->prepare('UPDATE meters SET num_using = num_using + 1 WHERE id = ?');
+  $stmt = $db->prepare('UPDATE meters SET gauges_using = gauges_using + 1 WHERE id = ?');
   $stmt->execute(array($_POST['meter']));
 }
 
 $buildings = $db->query("SELECT * FROM buildings WHERE user_id = {$user_id}");
 $buildings = $buildings->fetchAll();
 $num_buildings = count($buildings);
+// var_dump($buildings);
 ob_start();
 foreach($buildings as $building) {
-  echo "'" . addslashes($building['name']) . "': [[";
   $stmt = $db->prepare('SELECT id, name FROM meters WHERE building_id = ?');
   $stmt->execute(array($building['id']));
   $meters = $stmt->fetchAll();
   $num_meters = count($meters);
+  if ($num_meters === 0) {
+    continue;
+  }
+  echo "'" . addslashes($building['name']) . "': [[";
   foreach($meters as $meter) {
     echo "'" . addslashes($meter['name']) . "'";
     if ($num_meters-- !== 1) {
@@ -291,13 +295,13 @@ $javascript = ob_get_clean();
             <div class="form-group row">
               <label for="color" class="col-sm-3 form-control-label">Color</label>
               <div class="col-sm-9">
-                <input type="color" class="form-control" id="color" name="color" placeholder="e.g. #ecf0f1" value="<?php echo $default_color; ?>" maxlength="10" style="height:50px">
+                <input type="color" class="form-control" id="color" name="color" placeholder="e.g. #ecf0f1" value="<?php echo $default_color; ?>" maxlength="10" style="height:40px;padding: 0px;border: none">
               </div>
             </div>
             <div class="form-group row">
               <label for="bg" class="col-sm-3 form-control-label">Background</label>
               <div class="col-sm-9">
-                <input type="color" class="form-control" id="bg" name="bg" placeholder="e.g. #2ecc71" value="<?php echo $default_bg; ?>" maxlength="10" style="height:50px">
+                <input type="color" class="form-control" id="bg" name="bg" placeholder="e.g. #2ecc71" value="<?php echo $default_bg; ?>" maxlength="10" style="height:40px;padding: 0px;border: none">
               </div>
             </div>
             <div class="form-group row">

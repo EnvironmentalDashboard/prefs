@@ -20,6 +20,8 @@
       <a class="dropdown-item <?php echo ($fn === 'add-location') ? 'active' : ''; ?>" href="add-location.php">Add locations</a>
       <a class="dropdown-item <?php echo ($fn === 'add-screen') ? 'active' : ''; ?>" href="add-screen.php">Add screen locations</a>
       <a class="dropdown-item <?php echo ($fn === 'screen-locations') ? 'active' : ''; ?>" href="screen-locations.php">Screen locations</a>
+      <div class="dropdown-divider"></div>
+      <a class="dropdown-item" href="../calendar/" target="_blank">View calendar</a>
     </div>
   </li>
   <li class="nav-item dropdown">

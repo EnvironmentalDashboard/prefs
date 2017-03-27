@@ -30,7 +30,7 @@ require '../includes/db.php';
           <div class="col-sm-12">
             <h1>Screen locations</h1>
             <hr>
-            <table class="table">
+            <table class="table table-sm">
               <thead>
                 <tr>
                   <th>Location</th>

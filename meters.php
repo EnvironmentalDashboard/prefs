@@ -72,28 +72,34 @@ foreach ($db->query("SELECT * FROM time_series_configs WHERE user_id = {$user_id
           <?php include 'includes/navbar.php'; ?>
         </div>
       </div>
-      <div style="clear: both;height: 40px"></div>
-      <?php foreach ($db->query("SELECT id, name FROM buildings WHERE user_id = {$user_id} ORDER BY name ASC") as $building) { ?>
+      <div style="clear: both;height: 30px"></div>
+      <p style="font-size:13px"><span class="bg-success" style="height: 15px;width: 15px;display: inline-block;position: relative;top: 2px">&nbsp;</span> Data are being cached because a saved time series/gauge/old orb is using it or it is used by environmentalorb.org.</p>
+      <p style="margin-bottom: 20px;font-size:13px"><span class="bg-inverse" style="height: 15px;width: 15px;display: inline-block;position: relative;top: 2px">&nbsp;</span> Data are not collected for this meter because no apps use it.</p>
+      <?php foreach ($db->query("SELECT id, name FROM buildings WHERE user_id = {$user_id} ORDER BY name ASC") as $building) {
+        if ($db->query("SELECT COUNT(*) FROM meters WHERE building_id = {$building['id']}")->fetchColumn() === '0') {
+          continue;
+        }
+      ?>
       <div class="row">
         <div class="col-sm-12">
           <h3><?php echo $building['name']; ?></h3>
           <table class="table table-sm">
             <thead>
               <tr>
-                <th>Meter name</th>
+                <th>Meter&nbsp;name</th>
                 <th>Gauges</th>
-                <th>Time series</th>
+                <th>Time&nbsp;series</th>
                 <th>Orb</th>
                 <th>Relative value configuration</th>
-                <th>Last updated</th>
+                <th>Last&nbsp;updated</th>
               </tr>
             </thead>
             <tbody>
-              <?php foreach ($db->query("SELECT id, bos_uuid, name, last_updated, gauges_using, timeseries_using, for_orb FROM meters WHERE building_id = {$building['id']} ORDER BY gauges_using DESC, timeseries_using DESC, name ASC") as $meter) {
-                echo "<tr>";
+              <?php foreach ($db->query("SELECT id, bos_uuid, name, last_updated, gauges_using, timeseries_using, for_orb, orb_server FROM meters WHERE building_id = {$building['id']} ORDER BY last_updated DESC") as $meter) {
+                echo ($meter['gauges_using'] > 0 || $meter['timeseries_using'] > 0 || $meter['for_orb'] > 0 || $meter['orb_server'] > 0) ? "<tr class='table-success'>" : "<tr class='table-active'>";
                 echo "<td>{$meter['name']}</td>";
-                echo $meter['gauges_using'] > 0 ? "<td><a href='#'>{$meter['gauges_using']} saved gauges</a></td>" : "<td class='text-muted'>No saved gauges</td>";
-                echo $meter['timeseries_using'] > 0 ? "<td><a href='#'>{$meter['timeseries_using']} saved time series</a></td>" : "<td class='text-muted'>No saved time series</td>";
+                echo $meter['gauges_using'] > 0 ? "<td><a href='#'>{$meter['gauges_using']} saved gauges</a></td>" : "<td class='text-muted'>-</td>";
+                echo $meter['timeseries_using'] > 0 ? "<td><a href='#'>{$meter['timeseries_using']} saved time series</a></td>" : "<td class='text-muted'>-</td>";
                 if ($meter['for_orb'] > 0) {
                   $stmt = $db->prepare('SELECT INET_NTOA(ip) AS ip FROM orbs WHERE elec_uuid = ? OR water_uuid = ?');
                   $stmt->execute(array($meter['bos_uuid'], $meter['bos_uuid']));
@@ -106,7 +112,7 @@ foreach ($db->query("SELECT * FROM time_series_configs WHERE user_id = {$user_id
                 $stmt->execute(array($meter['bos_uuid']));
                 $relative_values = $stmt->fetchAll();
                 if (count($relative_values) === 0) {
-                  echo "<td>No configurations</td>";
+                  echo "<td>-</td>";
                 } else {
                   echo "<td>";
                   foreach ($relative_values as $rv) {

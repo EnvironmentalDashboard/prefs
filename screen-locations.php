@@ -44,7 +44,7 @@ require '../includes/db.php';
                 <tr>
                   <td><p><?php echo $row['name'] ?></p></td>
                   <td><p>http://104.131.103.232/oberlin/cwd/kiosk.php?loc_id=<?php echo $row['id']; ?></p></td>
-                  <td><p>#</p></td>
+                  <td><p>http://104.131.103.232/oberlin/calendar/slideshow.php?loc_id=<?php echo $row['id']; ?></p></td>
                   <td><a href="#" data-id="<?php echo $row['id']; ?>" class="btn btn-danger btn-sm">Delete location</a></td>
                 </tr>
                 <?php } ?>

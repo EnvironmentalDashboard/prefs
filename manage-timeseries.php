@@ -18,7 +18,7 @@ function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fil
     'color2' => $color2,
     'color3' => $color3
   ));
-  return "http://{$_SERVER['HTTP_HOST']}/".explode('/', $_SERVER['REQUEST_URI'])[1]."/time-series/chart.php?" . $q;
+  return "//{$_SERVER['HTTP_HOST']}/".explode('/', $_SERVER['REQUEST_URI'])[1]."/time-series/chart.php?" . $q;
 }
 function timeseriesURL2($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fill2, $dasharr3, $fill3, $start, $ticks, $color1, $color2, $color3) {
   $q = http_build_query(array(
@@ -36,7 +36,7 @@ function timeseriesURL2($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fi
     'color2' => $color2,
     'color3' => $color3
   ));
-  return "http://{$_SERVER['HTTP_HOST']}/".explode('/', $_SERVER['REQUEST_URI'])[1]."/time-series/index.php?" . $q;
+  return "//{$_SERVER['HTTP_HOST']}/".explode('/', $_SERVER['REQUEST_URI'])[1]."/time-series/index.php?" . $q;
 }
 if (isset($_POST['submit'])) {
   $stmt = $db->prepare('DELETE FROM time_series_configs WHERE id = ?');
@@ -47,6 +47,65 @@ if (isset($_POST['submit'])) {
     $stmt = $db->prepare('UPDATE meters SET timeseries_using = timeseries_using - 1 WHERE id = ?');
     $stmt->execute(array($_POST['meter_id2']));
   }
+}
+if (isset($_POST['refresh'])) {
+  require '../includes/class.BuildingOS.php';
+  $bos = new BuildingOS($db, $db->query("SELECT api_id FROM users WHERE id = '{$user_id}'")->fetchColumn());
+  $resolutions = array('live', 'quarterhour', 'hour', 'month');
+  $amounts = array(strtotime('-2 hours'), strtotime('-2 weeks'), strtotime('-2 months'), strtotime('-2 years'));
+  for ($i = 0; $i < count($resolutions); $i++) { 
+    cron($db, $bos, $_POST['meter_id1'], $resolutions[$i], $amounts[$i]);
+    if ($_POST['meter_id1'] !== $_POST['meter_id2']) {
+      cron($db, $bos, $_POST['meter_id2'], $resolutions[$i], $amounts[$i]);
+    }
+  }
+}
+
+function cron($db, $bos, $meter_id, $res, $amount) {
+  $time = time();
+  $stmt = $db->prepare('SELECT recorded FROM meter_data
+    WHERE meter_id = ? AND resolution = ? AND value IS NOT NULL
+    ORDER BY recorded DESC LIMIT 1');
+  $stmt->execute(array($meter_id, $res));
+  if ($stmt->rowCount() === 1) {
+    $last_recording = $stmt->fetchColumn();
+    $empty = false;
+  }
+  else {
+    $last_recording = $amount;
+    $empty = true;
+  }
+  $stmt = $db->prepare('SELECT url FROM meters WHERE id = ?');
+  $stmt->execute(array($meter_id));
+  $meter_url = $stmt->fetchColumn();
+  $meter_data = $bos->getMeter($meter_url . '/data', $res, $last_recording, $time, true);
+  $meter_data = json_decode($meter_data, true);
+  $meter_data = $meter_data['data'];
+  if (!empty($meter_data)) {
+    // Clean up old data
+    $stmt = $db->prepare("DELETE FROM meter_data WHERE meter_id = ? AND resolution = ? AND recorded < ?");
+    $stmt->execute(array($meter_id, $res, $amount));
+    // Delete null data that we're checking again
+    $stmt = $db->prepare("DELETE FROM meter_data WHERE meter_id = ? AND resolution = ? AND recorded >= ? AND value IS NULL");
+    $stmt->execute(array($meter_id, $res, $last_recording));
+    $last_value = null;
+    $last_recorded = null;
+    foreach ($meter_data as $data) { // Insert new data
+      $localtime = strtotime($data['localtime']);
+      if ($empty || $localtime > $last_recording) {
+        $stmt = $db->prepare("INSERT INTO meter_data (meter_id, value, recorded, resolution) VALUES (?, ?, ?, ?)");
+        $stmt->execute(array($meter_id, $data['value'], $localtime, $res));
+        if ($data['value'] !== null) {
+          $last_value = $data['value'];
+          $last_recorded = $localtime;
+        }
+      }
+    }
+    if ($update_current && $last_value !== null) { // Update meters table
+      $stmt = $db->prepare('UPDATE meters SET current = ?, last_updated = ? WHERE id = ? LIMIT 1');
+      $stmt->execute(array($last_value, $last_recorded, $meter_id));
+    }
+  } // if !empty($meter_data)
 }
 ?>
 <!DOCTYPE html>
@@ -77,6 +136,7 @@ if (isset($_POST['submit'])) {
                 <th>&nbsp;</th>
                 <th>URL</th>
                 <th>&nbsp;</th>
+                <th>&nbsp;</th>
               </tr>
             </thead>
             <tbody>
@@ -86,8 +146,17 @@ if (isset($_POST['submit'])) {
                   $url2 = timeseriesURL2($row['meter_id1'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3']);
                   echo "<td><object style='max-width:400px' type='image/svg+xml' data='{$url}'></object></td>\n";
                   echo "<td>
-                  <a style='word-break: break-all;' href='{$url2}' target='_blank'>{$url2}</a>
+                  Time series with title: <a style='word-break: break-all;' href='{$url2}' target='_blank'>https:{$url2}</a>
+                  <br>
+                  Time series: <a style='word-break: break-all;' href='{$url2}' target='_blank'>https:{$url}</a>
                   </td>";
+                  echo "<td>
+                        <form action='' method='POST'>
+                        <input type='hidden' name='meter_id1' value='{$row['meter_id1']}'>
+                        <input type='hidden' name='meter_id2' value='{$row['meter_id2']}'>
+                        <input type='submit' class='btn btn-secondary' value='Refresh data' name='refresh'>
+                        </form>
+                        </td>";
                   echo "<td>
                         <form action='' method='POST'>
                         <input type='hidden' name='id' value='{$row['id']}'>
@@ -110,10 +179,10 @@ if (isset($_POST['submit'])) {
 
     function setPreview(qs) {
       console.log(qs);
-      $('#preview-frame').html('<iframe frameborder="0" width="450px" height="450px" src="<?php echo "http://{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/time-series/chart.php?"; ?>' + qs + '"></iframe>');
+      $('#preview-frame').html('<iframe frameborder="0" width="450px" height="450px" src="<?php echo "//{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/time-series/chart.php?"; ?>' + qs + '"></iframe>');
     }
 
-    // http://stackoverflow.com/a/111545/2624391
+    // stackoverflow.com/a/111545/2624391
     function encodeQueryData(data) {
       var ret = [];
       for (var d in data)

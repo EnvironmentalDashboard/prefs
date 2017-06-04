@@ -49,64 +49,31 @@ if (isset($_POST['submit'])) {
   }
 }
 if (isset($_POST['refresh'])) {
-  require '../includes/class.BuildingOS.php';
-  $bos = new BuildingOS($db, $db->query("SELECT api_id FROM users WHERE id = '{$user_id}'")->fetchColumn());
+  $api_id = $db->query("SELECT api_id FROM users WHERE id = {$user_id}")->fetchColumn();
   $resolutions = array('live', 'quarterhour', 'hour', 'month');
-  $amounts = array(strtotime('-2 hours'), strtotime('-2 weeks'), strtotime('-2 months'), strtotime('-2 years'));
-  for ($i = 0; $i < count($resolutions); $i++) { 
-    cron($db, $bos, $_POST['meter_id1'], $resolutions[$i], $amounts[$i]);
+  for ($i = 0; $i < count($resolutions); $i++) {
+    $stmt = $db->prepare('SELECT recorded FROM meter_data
+      WHERE meter_id = ? AND resolution = ? AND value IS NOT NULL
+      ORDER BY recorded DESC LIMIT 1');
+    $stmt->execute(array($_POST['meter_id1'], $resolutions[$i]));
+    $amount = $stmt->fetchColumn();
+    // http://stackoverflow.com/a/3819422/2624391
+    exec('bash -c "exec nohup setsid php /var/www/html/oberlin/scripts/update-meter.php --api_id=\''.$api_id.
+      '\' --meter_id='.escapeshellarg($_POST['meter_id1']).
+      ' --res=\''.$resolutions[$i].'\' --amount=\''.$amount.'\' > /dev/null 2>&1 &"');
     if ($_POST['meter_id1'] !== $_POST['meter_id2']) {
-      cron($db, $bos, $_POST['meter_id2'], $resolutions[$i], $amounts[$i]);
+      $stmt = $db->prepare('SELECT recorded FROM meter_data
+      WHERE meter_id = ? AND resolution = ? AND value IS NOT NULL
+      ORDER BY recorded DESC LIMIT 1');
+      $stmt->execute(array($_POST['meter_id2'], $resolutions[$i]));
+      $amount = $stmt->fetchColumn();
+      exec('bash -c "exec nohup setsid php /var/www/html/oberlin/scripts/update-meter.php --api_id=\''.$api_id.
+      '\' --meter_id='.escapeshellarg($_POST['meter_id2']).
+      ' --res=\''.$resolutions[$i].'\' --amount=\''.$amount.'\' > /dev/null 2>&1 &"');
     }
   }
 }
 
-function cron($db, $bos, $meter_id, $res, $amount) {
-  $time = time();
-  $stmt = $db->prepare('SELECT recorded FROM meter_data
-    WHERE meter_id = ? AND resolution = ? AND value IS NOT NULL
-    ORDER BY recorded DESC LIMIT 1');
-  $stmt->execute(array($meter_id, $res));
-  if ($stmt->rowCount() === 1) {
-    $last_recording = $stmt->fetchColumn();
-    $empty = false;
-  }
-  else {
-    $last_recording = $amount;
-    $empty = true;
-  }
-  $stmt = $db->prepare('SELECT url FROM meters WHERE id = ?');
-  $stmt->execute(array($meter_id));
-  $meter_url = $stmt->fetchColumn();
-  $meter_data = $bos->getMeter($meter_url . '/data', $res, $last_recording, $time, true);
-  $meter_data = json_decode($meter_data, true);
-  $meter_data = $meter_data['data'];
-  if (!empty($meter_data)) {
-    // Clean up old data
-    $stmt = $db->prepare("DELETE FROM meter_data WHERE meter_id = ? AND resolution = ? AND recorded < ?");
-    $stmt->execute(array($meter_id, $res, $amount));
-    // Delete null data that we're checking again
-    $stmt = $db->prepare("DELETE FROM meter_data WHERE meter_id = ? AND resolution = ? AND recorded >= ? AND value IS NULL");
-    $stmt->execute(array($meter_id, $res, $last_recording));
-    $last_value = null;
-    $last_recorded = null;
-    foreach ($meter_data as $data) { // Insert new data
-      $localtime = strtotime($data['localtime']);
-      if ($empty || $localtime > $last_recording) {
-        $stmt = $db->prepare("INSERT INTO meter_data (meter_id, value, recorded, resolution) VALUES (?, ?, ?, ?)");
-        $stmt->execute(array($meter_id, $data['value'], $localtime, $res));
-        if ($data['value'] !== null) {
-          $last_value = $data['value'];
-          $last_recorded = $localtime;
-        }
-      }
-    }
-    if ($update_current && $last_value !== null) { // Update meters table
-      $stmt = $db->prepare('UPDATE meters SET current = ?, last_updated = ? WHERE id = ? LIMIT 1');
-      $stmt->execute(array($last_value, $last_recorded, $meter_id));
-    }
-  } // if !empty($meter_data)
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -130,26 +97,44 @@ function cron($db, $bos, $meter_id, $res, $amount) {
       <div style="clear:both;height:20px"></div>
       <div class="row">
         <div class="col-xs-12">
-          <table class="table">
+          <table class="table table-responsive table-sm">
             <thead>
               <tr>
+                <th>Title</th>
+                <th>Raw chart</th>
+                <th>URLs</th>
                 <th>&nbsp;</th>
-                <th>URL</th>
                 <th>&nbsp;</th>
                 <th>&nbsp;</th>
               </tr>
             </thead>
             <tbody>
-              <?php foreach ($db->query("SELECT * FROM time_series_configs WHERE user_id = {$user_id}") as $row) {
+              <?php
+              $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
+              $count = $db->query("SELECT COUNT(*) FROM time_series_configs WHERE user_id = {$user_id}")->fetchColumn();
+              $limit = 5;
+              $offset = $limit * $page;
+              $final_page = ceil($count / $limit);
+              foreach ($db->query("SELECT * FROM time_series_configs WHERE user_id = {$user_id} ORDER BY id ASC LIMIT {$offset}, {$limit}") as $row) {
                 echo "<tr>";
+                  echo '<td>';
+                  echo $db->query("SELECT buildings.name FROM buildings WHERE user_id = {$user_id} AND buildings.id IN (SELECT meters.building_id FROM meters WHERE meters.id = {$row['meter_id1']}) LIMIT 1")->fetchColumn() . ' ';
+                  echo $db->query("SELECT name FROM meters WHERE id = {$row['meter_id1']}")->fetchColumn();
+                  if ($row['meter_id1'] !== $row['meter_id2']) {
+                    echo ' vs. ';
+                    echo $db->query("SELECT buildings.name FROM buildings WHERE user_id = {$user_id} AND buildings.id IN (SELECT meters.building_id FROM meters WHERE meters.id = {$row['meter_id2']}) LIMIT 1")->fetchColumn() . ' ';
+                    echo $db->query("SELECT name FROM meters WHERE id = {$row['meter_id2']}")->fetchColumn();
+                  }
+                  echo '</td>';
                   $url = timeseriesURL($row['meter_id1'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3']);
                   $url2 = timeseriesURL2($row['meter_id1'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3']);
                   echo "<td><object style='max-width:400px' type='image/svg+xml' data='{$url}'></object></td>\n";
                   echo "<td>
-                  Time series with title: <a style='word-break: break-all;' href='{$url2}' target='_blank'>https:{$url2}</a>
-                  <br>
-                  Time series: <a style='word-break: break-all;' href='{$url2}' target='_blank'>https:{$url}</a>
+                  <p><a href='{$url2}' target='_blank'>Webpage with time series and title</a></p>
+                  <p><a href='{$url2}&webpage=notitle' target='_blank'>Blank webpage with timeseries (resizeable)</a></p>
+                  <p><a href='{$url}' target='_blank'>Raw SVG chart</a></p>
                   </td>";
+                  echo "<td><a onclick=\"javascript:alert('not yet');\" class='btn btn-secondary'>Edit</a></td>";
                   echo "<td>
                         <form action='' method='POST'>
                         <input type='hidden' name='meter_id1' value='{$row['meter_id1']}'>
@@ -169,10 +154,38 @@ function cron($db, $bos, $meter_id, $res, $amount) {
               } ?>
             </tbody>
           </table>
+          <nav aria-label="Page navigation" class="text-center">
+            <ul class="pagination pagination-lg" style="display: inline-flex">
+              <?php if ($page > 0) { ?>
+              <li class="page-item">
+                <a class="page-link" href="?sort=<?php echo $_GET['sort'] ?>&page=<?php echo $page ?>" aria-label="Previous">
+                  <span aria-hidden="true">&laquo;</span>
+                  <span class="sr-only">Previous</span>
+                </a>
+              </li>
+              <?php }
+              for ($i = 1; $i <= $final_page; $i++) {
+                if ($page + 1 === $i) {
+                  echo '<li class="page-item active"><a class="page-link" href="?page=' . $i . '">' . $i . '</a></li>';
+                }
+                else {
+                  echo '<li class="page-item"><a class="page-link" href="?page=' . $i . '">' . $i . '</a></li>';
+                }
+              }
+              if ($page + 1 < $final_page) { ?>
+              <li class="page-item">
+                <a class="page-link" href="?sort=<?php echo $_GET['sort'] ?>&page=<?php echo $page + 2 ?>" aria-label="Next">
+                  <span aria-hidden="true">&raquo;</span>
+                  <span class="sr-only">Next</span>
+                </a>
+              </li>
+              <?php } ?>
+            </ul>
+          </nav>
         </div>
       </div>
     </div>
-    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
     <script>

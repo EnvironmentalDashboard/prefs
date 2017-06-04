@@ -43,7 +43,7 @@ require '../includes/db.php';
                 <?php foreach ($db->query('SELECT * FROM calendar_screens') as $row) { ?>
                 <tr>
                   <td><p><?php echo $row['name'] ?></p></td>
-                  <td><p>http://104.131.103.232/oberlin/cwd/kiosk.php?loc_id=<?php echo $row['id']; ?></p></td>
+                  <td><p>http://104.131.103.232/oberlin/cwd/kiosk.php?loc_id=<?php echo $row['id']; ?>&amp;timer=80</p></td>
                   <td><p>http://104.131.103.232/oberlin/calendar/slideshow.php?loc_id=<?php echo $row['id']; ?></p></td>
                   <td><a href="#" data-id="<?php echo $row['id']; ?>" class="btn btn-danger btn-sm">Delete location</a></td>
                 </tr>
@@ -54,7 +54,7 @@ require '../includes/db.php';
         </div>
       </div>
     </div>
-    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
   </body>

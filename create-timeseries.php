@@ -114,9 +114,15 @@ foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY
                   <span class="custom-control-indicator"></span>
                   <span class="custom-control-description">Filled</span>
                 </label>
+                <!-- TODO -->
+                <label class="custom-control custom-checkbox">
+                  <input id="" name="" type="checkbox" class="custom-control-input">
+                  <span class="custom-control-indicator"></span>
+                  <span class="custom-control-description">Include second variable</span>
+                </label>
               </div>
             </div>
-            <div class="form-group row">
+            <div class="form-group row" style="display: none">
               <label class="col-sm-3 form-control-label">Historical chart</label>
               <div class="col-sm-9">
                 <input type="color" class="form-control" name="color2" value="#bdc3c7" id="color2" style="margin-bottom:5px;height: 40px;padding: 0px;border: none">
@@ -166,7 +172,7 @@ foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY
         </div>
       </div>
     </div>
-    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
     <script>

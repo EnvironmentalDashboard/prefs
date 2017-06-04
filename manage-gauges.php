@@ -18,7 +18,7 @@ function gaugeURL($rv_id, $meter_id, $color, $bg, $height, $width, $font_family,
     'ver' => $ver,
     'units' => $units,
   ));
-  return "http://104.131.103.232/".basename(dirname(__DIR__))."/gauges/gauge.php?" . $q;
+  return "https://oberlindashboard.org/oberlin/gauges/gauge.php?" . $q;
 }
 if (isset($_POST['edit'])) {
   $q = array(
@@ -176,7 +176,7 @@ foreach ($buildings->fetchAll() as $building) {
             <input type="submit" class="btn btn-primary" value="Search">
             <small style="display:block" class="text-muted" id="num-results"></small>
           </form>
-          <form action="" method="GET" class="form-inline" style="margin-top: 10px;margin-right:10pxfloat: right;">
+          <form action="" method="GET" class="form-inline" style="margin-top: 10px;margin-right:10px;float: right;">
             <div class="form-group">
               <select class="custom-select" name="sort" id="sortform">
                 <option value="newest" <?php echo (empty($_GET['sort']) || $_GET['sort'] === 'newest') ? 'selected' : ''; ?>>Newest first</option>
@@ -235,7 +235,7 @@ foreach ($buildings->fetchAll() as $building) {
           }
           else {
             ?>
-            <table class="table table-responsive" style="width: 100%">
+            <table class="table" style="width: 100%;margin-top: 20px">
               <thead>
                 <tr>
                   <th>Meter</th>
@@ -302,7 +302,7 @@ foreach ($buildings->fetchAll() as $building) {
         </div>
       </div>
     </div>
-    <script src="https://code.jquery.com/jquery-3.1.1.slim.min.js" integrity="sha384-A7FZj7v+d/sdmMqp/nOQwliLvUsJfDHW+k9Omg/a/EheAdgtzNs3hpfag6Ed950n" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
 <script>

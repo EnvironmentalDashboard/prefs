@@ -86,7 +86,7 @@ function time_ago($last_updated) {
 function name_that_grouping($grouping) {
   $grouping = json_decode($grouping, true);
   if ($grouping[0]['days'] == array(2,3,4,5,6) && $grouping[1]['days'] == array(1,7) ||
-      $grouping[1]['days'] == array(2,3,4,5,6) && $grouping[0]['days'] == array(1,7)) { // lol, php
+      $grouping[1]['days'] == array(2,3,4,5,6) && $grouping[0]['days'] == array(1,7)) {
     return 'Weekdays vs. weekends';
   }
   return 'Custom grouping';
@@ -135,29 +135,34 @@ function name_that_grouping($grouping) {
         <div class="col-sm-8">
           <h1>Meters</h1>
           <p>Clicking a relative value configuration will recalculate and display the relative value and update all identical configurations. Updating the database with the &quot;Sync data&quot; button will request all data from the BuildingOS API recorded since the last recording in the database. Deleting data for a meter can be used to view the result of a large API request.</p>
-          <p>Each meter is updated every <?php echo $db->query('SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE (gauges_using > 0 OR for_orb > 0 OR orb_server > 0 OR timeseries_using > 0) AND user_id = '.intval($user_id))->fetchColumn(); ?> minutes.</p>
+          <p>On average, the last attempt to update a meter was made <?php echo $db->query('SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE (gauges_using > 0 OR for_orb > 0 OR orb_server > 0 OR timeseries_using > 0) AND user_id = '.intval($user_id))->fetchColumn(); ?> minutes ago.</p>
         </div>
         <div class="col-sm-4">
-          <form action="" method="POST" id='sortbyform'>
+          <form action="" method="GET" id='sortbyform'>
             Show: 
             <select class="form-control" name="sortby" id="sortby">
               <option value="meters_collected">Meters data are collected for</option>
-              <option value="ignored_meters">Meters data are not collected</option>
-              <option value="all">All meters</option>
+              <option value="ignored_meters" <?php echo (isset($_GET['sortby']) && $_GET['sortby'] === 'ignored_meters') ? 'selected' : ''; ?>>Meters data are not collected</option>
+              <option value="all" <?php echo (isset($_GET['sortby']) && $_GET['sortby'] === 'all') ? 'selected' : ''; ?>>All meters</option>
             </select>
           </form>
         </div>
       </div>
       <!-- <p style="font-size:13px"><span class="bg-success" style="height: 15px;width: 15px;display: inline-block;position: relative;top: 2px">&nbsp;</span> Data are being cached because a saved time series/gauge/old orb is using it or it is used by environmentalorb.org.</p>
       <p style="margin-bottom: 20px;font-size:13px"><span class="bg-inverse" style="height: 15px;width: 15px;display: inline-block;position: relative;top: 2px">&nbsp;</span> Data are not collected for this meter because no apps use it.</p> -->
-      <?php foreach ($db->query("SELECT id, name FROM buildings WHERE user_id = {$user_id} ORDER BY name ASC") as $building) {
-        if ($db->query("SELECT COUNT(*) FROM meters WHERE building_id = {$building['id']}")->fetchColumn() === '0') {
+      <?php foreach ($db->query("SELECT id, name, hidden FROM buildings WHERE user_id = {$user_id} ORDER BY hidden ASC, name ASC") as $building) {
+        if ($db->query("SELECT COUNT(*) FROM meters WHERE building_id = {$building['id']}")->fetchColumn() === '0') { // skip buildings with no meters
           continue;
         }
       ?>
       <div class="row">
         <div class="col-sm-12">
-          <h3><?php echo $building['name']; ?></h3>
+          <h3><?php echo $building['name']; ?>
+            <div class="btn-group" role="group" aria-label="Basic example">
+              <button type="button" class="btn btn-sm <?php echo ($building['hidden'] === '0') ? 'active' : ''; ?> btn-secondary show-building" data-building_id="<?php echo $building['id'] ?>" data-action="show-building">Shown</button>
+              <button type="button" class="btn btn-sm <?php echo ($building['hidden'] === '0') ? '' : 'active'; ?> btn-secondary hide-building" data-building_id="<?php echo $building['id'] ?>" data-action="hide-building">Hidden</button>
+            </div>
+          </h3>
           <table class="table table-sm" style="overflow-x: scroll;">
             <thead>
               <tr>
@@ -272,22 +277,8 @@ function name_that_grouping($grouping) {
         var insert_here = $('#script_status');
         insert_here.empty();
         if (action === 'update-rv') {
-          $('#modal-title').text('Retrieving data from BuildingOS API');
-          $.getJSON( "../scripts/update-meter-rv.php", {meter_id: button.data('meter_id'), grouping: JSON.stringify(button.data('grouping'))})
-            .done(function( json ) {
-              // console.log( "JSON Data: " + json );
-              $('#modal-title').text('Data returned from BuildingOS API');
-              $.each(json, function(key, value) {
-                insert_here.append('<h6>'+key+'</h6>').append('<pre><code>'+value+'</code></pre>');
-              });
-            })
-            .fail(function( jqxhr, textStatus, error ) {
-              var err = textStatus + ", " + error;
-              console.log( "Request Failed: " + err, jqxhr.responseText );
-          });
-        } else if (action === 'update-data') {
           $('#modal-title').text('Calculating relative value');
-          $.getJSON( "../scripts/update-meter.php", {user_id: button.data('user_id'), meter_id: button.data('meter_id'), meter_uuid: button.data('meter_uuid'), meter_url: button.data('url'), res: button.data('resolution')})
+          $.getJSON( "../scripts/update-meter-rv.php", {meter_id: button.data('meter_id'), grouping: JSON.stringify(button.data('grouping'))})
             .done(function( json ) {
               // console.log( "JSON Data: " + json );
               $('#modal-title').text('Relative value calculation');
@@ -299,9 +290,33 @@ function name_that_grouping($grouping) {
               var err = textStatus + ", " + error;
               console.log( "Request Failed: " + err, jqxhr.responseText );
           });
+        } else if (action === 'update-data') {
+          $('#modal-title').text('Retrieving data from BuildingOS API');
+          $.getJSON( "../scripts/update-meter.php", {user_id: button.data('user_id'), meter_id: button.data('meter_id'), meter_uuid: button.data('meter_uuid'), meter_url: button.data('url'), res: button.data('resolution')})
+            .done(function( json ) {
+              // console.log( "JSON Data: " + json );
+              $('#modal-title').text('Data returned from BuildingOS API');
+              $.each(json, function(key, value) {
+                insert_here.append('<h6>'+key+'</h6>').append('<pre><code>'+value+'</code></pre>');
+              });
+            })
+            .fail(function( jqxhr, textStatus, error ) {
+              var err = textStatus + ", " + error;
+              console.log( "Request Failed: " + err, jqxhr.responseText );
+          });
         }
         // modal.find('.modal-title').text('New message to ' + recipient)
         // modal.find('.modal-body input').val(recipient)
+      });
+      $('.show-building').on('click', function() {
+        $.post('includes/show-hide-building.php', {action: $(this).data('action'), building_id: $(this).data('building_id')}, function(data) {
+          console.log(data);
+        })
+      });
+      $('.hide-building').on('click', function() {
+        $.post('includes/show-hide-building.php', {action: $(this).data('action'), building_id: $(this).data('building_id')}, function(data) {
+          console.log(data);
+        })
       });
     </script>
   </body>

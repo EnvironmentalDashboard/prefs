@@ -1,8 +1,10 @@
 <?php
 error_reporting(-1);
 ini_set('display_errors', 'On');
+$symlink = explode('/', $_SERVER['REQUEST_URI'])[1];
 require '../includes/db.php';
-function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fill2, $dasharr3, $fill3, $start, $ticks, $color1, $color2, $color3) {
+require 'includes/check-signed-in.php';
+function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fill2, $dasharr3, $fill3, $start, $ticks, $color1, $color2, $color3, $label) {
   $q = http_build_query(array(
     'meter_id' => $meter_id,
     'dasharr1' => $dasharr1,
@@ -16,12 +18,13 @@ function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fil
     'ticks' => $ticks,
     'color1' => $color1,
     'color2' => $color2,
-    'color3' => $color3
+    'color3' => $color3,
+    'label' => $label
   ));
-  return "//{$_SERVER['HTTP_HOST']}/".explode('/', $_SERVER['REQUEST_URI'])[1]."/time-series/chart.php?" . $q;
+  return "../time-series/chart.php?" . $q;
 }
-function timeseriesURL2($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fill2, $dasharr3, $fill3, $start, $ticks, $color1, $color2, $color3) {
-  $q = http_build_query(array(
+function timeseries_qs($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fill2, $dasharr3, $fill3, $start, $ticks, $color1, $color2, $color3, $label) {
+  return http_build_query(array(
     'meter_id' => $meter_id,
     'dasharr1' => $dasharr1,
     'fill1' => $fill1,
@@ -34,16 +37,16 @@ function timeseriesURL2($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fi
     'ticks' => $ticks,
     'color1' => $color1,
     'color2' => $color2,
-    'color3' => $color3
+    'color3' => $color3,
+    'label' => $label
   ));
-  return "//{$_SERVER['HTTP_HOST']}/".explode('/', $_SERVER['REQUEST_URI'])[1]."/time-series/index.php?" . $q;
 }
 if (isset($_POST['submit'])) {
   $stmt = $db->prepare('DELETE FROM time_series_configs WHERE id = ?');
   $stmt->execute(array($_POST['id']));
   $stmt = $db->prepare('UPDATE meters SET timeseries_using = timeseries_using - 1 WHERE id = ?');
-  $stmt->execute(array($_POST['meter_id1']));
-  if ($_POST['meter_id1'] !== $_POST['meter_id2']) {
+  $stmt->execute(array($_POST['meter_id']));
+  if ($_POST['meter_id'] !== $_POST['meter_id2']) {
     $stmt = $db->prepare('UPDATE meters SET timeseries_using = timeseries_using - 1 WHERE id = ?');
     $stmt->execute(array($_POST['meter_id2']));
   }
@@ -55,13 +58,13 @@ if (isset($_POST['refresh'])) {
     $stmt = $db->prepare('SELECT recorded FROM meter_data
       WHERE meter_id = ? AND resolution = ? AND value IS NOT NULL
       ORDER BY recorded DESC LIMIT 1');
-    $stmt->execute(array($_POST['meter_id1'], $resolutions[$i]));
+    $stmt->execute(array($_POST['meter_id'], $resolutions[$i]));
     $amount = $stmt->fetchColumn();
     // http://stackoverflow.com/a/3819422/2624391
     exec('bash -c "exec nohup setsid php /var/www/html/oberlin/scripts/update-meter.php --api_id=\''.$api_id.
-      '\' --meter_id='.escapeshellarg($_POST['meter_id1']).
+      '\' --meter_id='.escapeshellarg($_POST['meter_id']).
       ' --res=\''.$resolutions[$i].'\' --amount=\''.$amount.'\' > /dev/null 2>&1 &"');
-    if ($_POST['meter_id1'] !== $_POST['meter_id2']) {
+    if ($_POST['meter_id'] !== $_POST['meter_id2']) {
       $stmt = $db->prepare('SELECT recorded FROM meter_data
       WHERE meter_id = ? AND resolution = ? AND value IS NOT NULL
       ORDER BY recorded DESC LIMIT 1');
@@ -74,6 +77,23 @@ if (isset($_POST['refresh'])) {
   }
 }
 
+if (isset($_POST['save-changes'])) {
+  $q = array(
+    ':dasharr1' => isset($_POST['dasharr1']) ? $_POST['dasharr1'] : null,
+    ':fill1' => isset($_POST['fill1']) ? $_POST['fill1'] : null,
+    ':dasharr2' => isset($_POST['dasharr2']) ? $_POST['dasharr2'] : null,
+    ':fill2' => isset($_POST['fill2']) ? $_POST['fill2'] : null,
+    ':dasharr3' => isset($_POST['dasharr3']) ? $_POST['dasharr3'] : null,
+    ':fill3' => isset($_POST['fill3']) ? $_POST['fill3'] : null,
+    ':start' => $_POST['start'] ? $_POST['start'] : 0,
+    ':color1' => $_POST['color1'],
+    ':color2' => $_POST['color2'],
+    ':color3' => $_POST['color3'],
+    ':label' => ($_POST['label']==null) ? null : $_POST['label']
+  );
+  $stmt = $db->prepare('UPDATE time_series_configs SET dasharr1 = :dasharr1, fill1 = :fill1, dasharr2 = :dasharr2, fill2 = :fill2, dasharr3 = :dasharr3, fill3 = :fill3, start = :start, color1 = :color1, color2 = :color2, color3 = :color3, label = :label)');
+  $stmt->execute($q);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -87,6 +107,79 @@ if (isset($_POST['refresh'])) {
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.min.css" integrity="sha384-rwoIResjU2yc3z8GV/NPeZWAv56rSmLldC3R/AZzGRnGxQQKnKkoFVhFQhNUwEyJ" crossorigin="anonymous">
   </head>
   <body style="padding-top:5px">
+    <!-- Modal -->
+    <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <form action="" method="POST">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modal-title">Edit time series</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" name="id" id="id" value="">
+              <div class="form-group">
+                <label for="label">Title</label>
+                <input type="text" class="form-control" id="label" name="label" value="">
+              </div>
+              <div class="form-group">
+                <label for="color1">Primary variable</label>
+                <input type="color" class="form-control" id="color1" name="color1" value="" style="height:50px;padding:0px">
+                <label class="custom-control custom-checkbox">
+                  <input id="dasharr1" name="dasharr1" type="checkbox" class="custom-control-input">
+                  <span class="custom-control-indicator"></span>
+                  <span class="custom-control-description">Dashed</span>
+                </label>
+                <label class="custom-control custom-checkbox">
+                  <input id="fill1" name="fill1" type="checkbox" class="custom-control-input" checked>
+                  <span class="custom-control-indicator"></span>
+                  <span class="custom-control-description">Filled</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="color2">Historical chart</label>
+                <input type="color" class="form-control" id="color2" name="color2" value="" style="height:50px;padding:0px">
+                <label class="custom-control custom-checkbox">
+                  <input id="dasharr2" name="dasharr2" type="checkbox" class="custom-control-input">
+                  <span class="custom-control-indicator"></span>
+                  <span class="custom-control-description">Dashed</span>
+                </label>
+                <label class="custom-control custom-checkbox">
+                  <input id="fill2" name="fill2" type="checkbox" class="custom-control-input" checked>
+                  <span class="custom-control-indicator"></span>
+                  <span class="custom-control-description">Filled</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="color3">Secondary variable</label>
+                <input type="color" class="form-control" id="color3" name="color3" value="" style="height:50px;padding:0px">
+                <label class="custom-control custom-checkbox">
+                  <input id="dasharr3" name="dasharr3" type="checkbox" class="custom-control-input">
+                  <span class="custom-control-indicator"></span>
+                  <span class="custom-control-description">Dashed</span>
+                </label>
+                <label class="custom-control custom-checkbox">
+                  <input id="fill3" name="fill3" type="checkbox" class="custom-control-input" checked>
+                  <span class="custom-control-indicator"></span>
+                  <span class="custom-control-description">Filled</span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label for="start">Start Y-axis scale from</label>
+                <input type="text" class="form-control" id="start" name="start" value="">
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-primary" name="save-changes">Save changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <div class="container">
       <div class="row">
         <div class="col-xs-12">
@@ -102,8 +195,7 @@ if (isset($_POST['refresh'])) {
               <tr>
                 <th>Title</th>
                 <th>Raw chart</th>
-                <th>URLs</th>
-                <th>&nbsp;</th>
+                <th style='max-width:400px'>URL</th>
                 <th>&nbsp;</th>
                 <th>&nbsp;</th>
               </tr>
@@ -112,40 +204,67 @@ if (isset($_POST['refresh'])) {
               <?php
               $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
               $count = $db->query("SELECT COUNT(*) FROM time_series_configs WHERE user_id = {$user_id}")->fetchColumn();
-              $limit = 5;
+              $limit = 3;
               $offset = $limit * $page;
               $final_page = ceil($count / $limit);
               foreach ($db->query("SELECT * FROM time_series_configs WHERE user_id = {$user_id} ORDER BY id ASC LIMIT {$offset}, {$limit}") as $row) {
                 echo "<tr>";
-                  echo '<td>';
-                  echo $db->query("SELECT buildings.name FROM buildings WHERE user_id = {$user_id} AND buildings.id IN (SELECT meters.building_id FROM meters WHERE meters.id = {$row['meter_id1']}) LIMIT 1")->fetchColumn() . ' ';
-                  echo $db->query("SELECT name FROM meters WHERE id = {$row['meter_id1']}")->fetchColumn();
-                  if ($row['meter_id1'] !== $row['meter_id2']) {
-                    echo ' vs. ';
-                    echo $db->query("SELECT buildings.name FROM buildings WHERE user_id = {$user_id} AND buildings.id IN (SELECT meters.building_id FROM meters WHERE meters.id = {$row['meter_id2']}) LIMIT 1")->fetchColumn() . ' ';
-                    echo $db->query("SELECT name FROM meters WHERE id = {$row['meter_id2']}")->fetchColumn();
-                  }
-                  echo '</td>';
-                  $url = timeseriesURL($row['meter_id1'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3']);
-                  $url2 = timeseriesURL2($row['meter_id1'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3']);
+                  echo "<td><p id='label-{$row['id']}'>";
+                  if ($row['label'] == null) {
+                    echo $db->query("SELECT buildings.name FROM buildings WHERE user_id = {$user_id} AND buildings.id IN (SELECT meters.building_id FROM meters WHERE meters.id = {$row['meter_id']}) LIMIT 1")->fetchColumn() . ' ';
+                    echo $db->query("SELECT name FROM meters WHERE id = {$row['meter_id']}")->fetchColumn();
+                  } else { echo $row['label']; }
+                  echo '</p></td>';
+                  $query_string = timeseries_qs($row['meter_id'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3'], $row['label']);
+                  $start_url = "{$_SERVER['HTTP_HOST']}/{$symlink}/time-series/index.php?{$query_string}";
+                  $url = timeseriesURL($row['meter_id'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3'], $row['label']);
                   echo "<td><object style='max-width:400px' type='image/svg+xml' data='{$url}'></object></td>\n";
-                  echo "<td>
-                  <p><a href='{$url2}' target='_blank'>Webpage with time series and title</a></p>
-                  <p><a href='{$url2}&webpage=notitle' target='_blank'>Blank webpage with timeseries (resizeable)</a></p>
-                  <p><a href='{$url}' target='_blank'>Raw SVG chart</a></p>
+                  echo "<td style='max-width:400px'>
+                  <form>
+                    <div class='form-check'>
+                      <label class='form-check-label'>
+                        <input type='checkbox' class='form-check-input' id='prettyurl-{$row['id']}'>
+                        Pretty URL
+                      </label>
+                    </div>
+                    <div class='form-check'>
+                      <label class='form-check-label'>
+                        <input type='checkbox' class='form-check-input' id='html-{$row['id']}' checked>
+                        Include chart in HTML page
+                      </label>
+                    </div>
+                    <div class='form-check' id='extraoption1{$row['id']}'>
+                      <label class='form-check-label'>
+                        <input type='checkbox' class='form-check-input' id='title-{$row['id']}' checked>
+                        Include title
+                      </label>
+                    </div>
+                    <div class='form-check' id='extraoption2{$row['id']}'>
+                      <label class='form-check-label'>
+                        <input type='checkbox' class='form-check-input' id='img-{$row['id']}' checked>
+                        Include building image
+                      </label>
+                    </div>
+                  </form>
+                  <p id='displayurl-{$row['id']}' data-querystring='{$query_string}' style='word-wrap: break-word;'>{$start_url}</p>
                   </td>";
-                  echo "<td><a onclick=\"javascript:alert('not yet');\" class='btn btn-secondary'>Edit</a></td>";
-                  echo "<td>
-                        <form action='' method='POST'>
-                        <input type='hidden' name='meter_id1' value='{$row['meter_id1']}'>
-                        <input type='hidden' name='meter_id2' value='{$row['meter_id2']}'>
-                        <input type='submit' class='btn btn-secondary' value='Refresh data' name='refresh'>
-                        </form>
-                        </td>";
+                  echo "<td><button type='button' class='btn btn-primary' data-toggle='modal' data-target='#modal'
+                    data-dasharr1='{$row['dasharr1']}'
+                    data-fill1='{$row['fill1']}'
+                    data-color1='{$row['color1']}'
+                    data-dasharr2='{$row['dasharr2']}'
+                    data-fill2='{$row['fill2']}'
+                    data-color2='{$row['color2']}'
+                    data-dasharr3='{$row['dasharr3']}'
+                    data-fill3='{$row['fill3']}'
+                    data-color3='{$row['color3']}'
+                    data-label='{$row['label']}'
+                    data-id='{$row['id']}'
+                    >Edit</button></td>";
                   echo "<td>
                         <form action='' method='POST'>
                         <input type='hidden' name='id' value='{$row['id']}'>
-                        <input type='hidden' name='meter_id1' value='{$row['meter_id1']}'>
+                        <input type='hidden' name='meter_id' value='{$row['meter_id']}'>
                         <input type='hidden' name='meter_id2' value='{$row['meter_id2']}'>
                         <input type='submit' class='btn btn-danger' value='Delete' name='submit'>
                         </form>
@@ -189,37 +308,56 @@ if (isset($_POST['refresh'])) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
     <script>
+    $('.form-check-input').on('change', function() {
+      var clicked = $(this).attr('id').split('-');
+      var action = clicked[0];
+      var timeseries_id = clicked[1];
+      if (action === 'title' && !$(this).is(':checked')) {
+        $('#img-'+timeseries_id).prop('disabled', true);
+      } else if (action === 'title') {
+        $('#img-'+timeseries_id).prop('disabled', false);
+      }
+      if (action === 'html' && !$(this).is(':checked')) {
+        $('#extraoption1' + timeseries_id + ', #extraoption2' + timeseries_id).css('display', 'none');
+      } else if (action === 'html') {
+        $('#extraoption1' + timeseries_id + ', #extraoption2' + timeseries_id).css('display', '');
+      }
+      var base_url = '<?php echo $_SERVER['HTTP_HOST'] . "/{$symlink}"; ?>/time-series/';
+      if ($('#html-' + timeseries_id).is(':checked')) {
+        var page = 'index.php?';
+      } else {
+        var page = 'chart.php?';
+      }
+      var displayurl = $('#displayurl-' + timeseries_id);
+      if ($('#prettyurl-' + timeseries_id).is(':checked')) {
+        var qs = 'timeseriesconfig=' + timeseries_id;
+      } else {
+        var qs = displayurl.data('querystring');
+      }
+      var titlechecked = $('#title-' + timeseries_id).is(':checked');
+      if (titlechecked && $('#img-' + timeseries_id).is(':checked')) {
+        var extrabit = '';
+      } else if (titlechecked) {
+        var extrabit = '&webpage=title';
+      } else {
+        var extrabit = '&webpage=notitle'
+      }
+      displayurl.text(base_url + page + qs + extrabit);
+    });
 
-    function setPreview(qs) {
-      console.log(qs);
-      $('#preview-frame').html('<iframe frameborder="0" width="450px" height="450px" src="<?php echo "//{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/time-series/chart.php?"; ?>' + qs + '"></iframe>');
-    }
-
-    // stackoverflow.com/a/111545/2624391
-    function encodeQueryData(data) {
-      var ret = [];
-      for (var d in data)
-        ret.push(encodeURIComponent(d) + "=" + encodeURIComponent(data[d]));
-      return ret.join("&");
-    }
-    
-    $('#preview').on('click', function() {
-      var data = {
-        'meter_id': $('#meter_id').val(),
-        'dasharr1': ($('#dasharr1').is(':checked') ? 'on' : 'off'),
-        'fill1': ($('#fill1').is(':checked') ? 'on' : 'off'),
-        'color1': $('#color1').val(),
-        'meter_id2': $('#meter_id2').val(),
-        'dasharr2': ($('#dasharr2').is(':checked') ? 'on' : 'off'),
-        'fill2': ($('#fill2').is(':checked') ? 'on' : 'off'),
-        'color3': $('#color3').val(),
-        'dasharr3': ($('#dasharr3').is(':checked') ? 'on' : 'off'),
-        'fill3': ($('#fill3').is(':checked') ? 'on' : 'off'),
-        'color2': $('#color2').val(),
-        'start': $('#start').val(),
-        'ticks': ($('#ticks').is(':checked') ? 'on' : 'off')
-      };
-      setPreview(encodeQueryData(data));
+    var firstmeter = null;
+    $('#modal').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget);
+      $.each(button.data(), function(i, v) {
+        if (i !== 'target' && i !== 'toggle') {
+          // console.log('"' + i + '":"' + v + '",');
+          if (i === firstmeter) {}
+          $('#' + i).val(v);
+        }
+      });
+      var modal = $(this)
+      // modal.find('.modal-title').text('New message to ' + recipient)
+      // modal.find('.modal-body input').val(recipient)
     });
 
     </script>

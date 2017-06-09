@@ -7,6 +7,7 @@
 // error_reporting(-1);
 // ini_set('display_errors', 'On');
 require '../includes/db.php';
+require 'includes/check-signed-in.php';
 if (isset($_POST['gauge'])) {
   $column = $_POST['resource'] . '_messages'; // Possible SQL injection vulnerability
   // Update the meter ID in the cwd_bos table

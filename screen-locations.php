@@ -2,6 +2,7 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
+require 'includes/check-signed-in.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">

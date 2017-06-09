@@ -2,6 +2,7 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
+require 'includes/check-signed-in.php';
 $timing = $db->query("SELECT * FROM timing WHERE user_id = {$user_id} LIMIT 1")->fetch();
 if (isset($_POST['submit'])) {
   $stmt = $db->prepare("UPDATE timing SET message_section = ?, delay = ?, `interval` = ? WHERE user_id = ?");

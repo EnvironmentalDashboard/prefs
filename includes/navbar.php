@@ -13,6 +13,7 @@
       <a class="dropdown-item" href="../cwd/" target="_blank">Preview</a>
     </div>
   </li>
+  <?php if ($symlink === 'oberlin') { ?>
   <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Calendar</a>
     <div class="dropdown-menu">
@@ -24,6 +25,7 @@
       <a class="dropdown-item" href="../calendar/" target="_blank">View calendar</a>
     </div>
   </li>
+  <?php } ?>
   <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Gauges</a>
     <div class="dropdown-menu">
@@ -39,9 +41,11 @@
       <a class="dropdown-item <?php echo ($fn === 'timeseries-animations') ? 'active' : ''; ?>" href="timeseries-animations.php">Customize animations</a>
     </div>
   </li>
+  <?php if ($symlink === 'oberlin') { ?>
   <li class="nav-item">
     <a class="nav-link <?php echo ($fn === 'orbs') ? 'active' : ''; ?>" href="orbs.php">Orbs</a>
   </li>
+  <?php } ?>
   <li class="nav-item">
     <a class="nav-link <?php echo ($fn === 'meters') ? 'active' : ''; ?>" href="meters.php">Meters</a>
   </li>

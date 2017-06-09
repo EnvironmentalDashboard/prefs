@@ -2,6 +2,7 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
+require 'includes/check-signed-in.php';
 if (isset($_POST['submit'])) {
   if (!file_exists($_FILES['file']['tmp_name']) || !is_uploaded_file($_FILES['file']['tmp_name'])) {
     $stmt = $db->prepare("UPDATE cwd_landscape_components
@@ -62,19 +63,19 @@ if (isset($_POST['add-landscape-component'])) {
   ));
 
 }
-if (isset($_GET['delete'])) {
+if (isset($_POST['delete'])) {
   $stmt = $db->prepare('DELETE FROM cwd_landscape_components WHERE component = ?');
-  $stmt->execute(array($_GET['delete']));
+  $stmt->execute(array($_POST['delete']));
 }
 
-// if (isset($_GET['disable'])) {
-//   $stmt = $db->prepare('UPDATE cwd_landscape_components SET hidden = 1 WHERE component = ?');
-//   $stmt->execute(array($_GET['disable']));
-// }
-// if (isset($_GET['enable'])) {
-//   $stmt = $db->prepare('UPDATE cwd_landscape_components SET hidden = 0 WHERE component = ?');
-//   $stmt->execute(array($_GET['enable']));
-// }
+if (isset($_POST['disable'])) {
+  $stmt = $db->prepare('UPDATE cwd_landscape_components SET hidden = 1 WHERE component = ?');
+  $stmt->execute(array($_POST['disable']));
+}
+if (isset($_POST['enable'])) {
+  $stmt = $db->prepare('UPDATE cwd_landscape_components SET hidden = 0 WHERE component = ?');
+  $stmt->execute(array($_POST['enable']));
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -232,11 +233,26 @@ if (isset($_GET['delete'])) {
                 data-removable="<?php echo $row['removable']; ?>"
                 href="#">Edit</a></td>
                 <?php if ($row['removable']) { ?>
-                <td><a class="btn btn-danger" href="?delete=<?php echo $row['component'] ?>">Delete</a></td>
+                <td>
+                  <form action="" method="POST">
+                    <input type="hidden" name="delete" value="<?php echo $row['component'] ?>">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                  </form>
+                </td>
                 <?php } else if (!$row['hidden']) { ?>
-                <td><a class="btn btn-warning" href="?disable=<?php echo $row['component'] ?>">Hide</a></td>
+                <td>
+                  <form action="" method="POST">
+                    <input type="hidden" name="disable" value="<?php echo $row['component'] ?>">
+                    <button type="submit" class="btn btn-warning">Hide</button>
+                  </form>
+                </td>
                 <?php } else {?>
-                <td><a class="btn btn-primary" href="?enable=<?php echo $row['component'] ?>">Show</a></td>
+                <td>
+                  <form action="" method="POST">
+                    <input type="hidden" name="enable" value="<?php echo $row['component'] ?>">
+                    <button type="submit" class="btn btn-primary">Show</button>
+                  </form>
+                </td>
                 <?php } ?>
               </tr>
               <?php } ?>

@@ -3,6 +3,7 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
+require 'includes/check-signed-in.php';
 if (isset($_POST['submit'])) {
   // Update cwd_bos table
   $stmt = $db->prepare('UPDATE cwd_bos SET water_speed = ?, electricity_speed = ?, squirrel = ?, fish = ? WHERE user_id = ? LIMIT 1');

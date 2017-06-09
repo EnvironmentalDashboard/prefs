@@ -2,6 +2,7 @@
 // error_reporting(-1);
 // ini_set('display_errors', 'On');
 require '../includes/db.php';
+require 'includes/check-signed-in.php';
 function gaugeURL($rv_id, $meter_id, $color, $bg, $height, $width, $font_family, $title, $title2, $border_radius, $rounding, $ver, $units) {
   $q = http_build_query(array(
     'rv_id' => $rv_id,

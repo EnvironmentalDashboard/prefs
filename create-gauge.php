@@ -2,6 +2,7 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
+require 'includes/check-signed-in.php';
 
 $default_color = '#ecf0f1';
 $default_bg = '#2ecc71';

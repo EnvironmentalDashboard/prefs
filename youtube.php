@@ -2,6 +2,7 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
+require 'includes/check-signed-in.php';
 if (isset($_POST['new_video'])) {
   $calendar_screen_ids = implode(',', $_POST['screens']);
   parse_str( parse_url( $_POST['new_video'], PHP_URL_QUERY ), $arr );

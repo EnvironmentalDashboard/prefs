@@ -2,11 +2,12 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
+require 'includes/check-signed-in.php';
 
 if (isset($_POST['submit'])) {
   $q = array(
     ':user_id' => $user_id,
-    ':meter_id1' => $_POST['meter_id'],
+    ':meter_id' => $_POST['meter_id'],
     ':dasharr1' => isset($_POST['dasharr1']) ? $_POST['dasharr1'] : null,
     ':fill1' => isset($_POST['fill1']) ? $_POST['fill1'] : null,
     ':meter_id2' => $_POST['meter_id2'],
@@ -18,10 +19,11 @@ if (isset($_POST['submit'])) {
     ':ticks' => isset($_POST['ticks']) ? $_POST['ticks'] : 0,
     ':color1' => $_POST['color1'],
     ':color2' => $_POST['color2'],
-    ':color3' => $_POST['color3']
+    ':color3' => $_POST['color3'],
+    ':label' => ($_POST['title']==null) ? null : $_POST['title']
   );
-  $stmt = $db->prepare('INSERT INTO time_series_configs (user_id, meter_id1, meter_id2, dasharr1, fill1, dasharr2, fill2, dasharr3, fill3, start, ticks, color1, color2, color3)
-    VALUES (:user_id, :meter_id1, :meter_id2, :dasharr1, :fill1, :dasharr2, :fill2, :dasharr3, :fill3, :start, :ticks, :color1, :color2, :color3)');
+  $stmt = $db->prepare('INSERT INTO time_series_configs (user_id, meter_id, meter_id2, dasharr1, fill1, dasharr2, fill2, dasharr3, fill3, start, ticks, color1, color2, color3, label)
+    VALUES (:user_id, :meter_id, :meter_id2, :dasharr1, :fill1, :dasharr2, :fill2, :dasharr3, :fill3, :start, :ticks, :color1, :color2, :color3, :label)');
   $stmt->execute($q);
   if ($_POST['meter_id'] === $_POST['meter_id2']) {
     $stmt = $db->prepare('UPDATE meters SET timeseries_using = timeseries_using + 1 WHERE id = ?');
@@ -72,10 +74,17 @@ foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY
       </div>
       <div style="clear:both;height:20px"></div>
       <div class="row">
-        <div class="col-xs-12 col-sm-7">
+        <div class="col-xs-12 col-sm-12">
           <h1>Create time series URL</h1>
           <hr>
           <form action="" method="POST">
+            <div class="form-group row">
+              <label for="label" class="col-sm-3 form-control-label">Time series title</label>
+              <div class="col-sm-9">
+                <input type="text" class="form-control" id="label" name="label">
+                <small class="text-muted">If left blank will be the building name of the primary variable</small>
+              </div>
+            </div>
             <div class="form-group row">
               <label for="meter_id" class="col-sm-3 form-control-label">Primary variable</label>
               <div class="col-sm-9">
@@ -97,12 +106,9 @@ foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY
               </div>
             </div>
             <div class="form-group row">
-              <label for="meter_id2" class="col-sm-3 form-control-label">Secondary variable</label>
+              <label class="col-sm-3 form-control-label">Historical chart</label>
               <div class="col-sm-9">
-                <select style="width:100%" name="meter_id2" id="meter_id2" class="custom-select">
-                  <?php echo $dropdown_html ?>
-                </select>
-                <input type="color" class="form-control" name="color3" value="#33A7FF" id="color3" style="margin-top:10px;margin-bottom:5px;height: 40px;padding: 0px;border: none">
+                <input type="color" class="form-control" name="color2" value="#bdc3c7" id="color2" style="margin-bottom:5px;height: 40px;padding: 0px;border: none">
                 <label class="custom-control custom-checkbox">
                   <input id="dasharr2" name="dasharr2" type="checkbox" class="custom-control-input">
                   <span class="custom-control-indicator"></span>
@@ -114,18 +120,20 @@ foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY
                   <span class="custom-control-indicator"></span>
                   <span class="custom-control-description">Filled</span>
                 </label>
-                <!-- TODO -->
-                <label class="custom-control custom-checkbox">
-                  <input id="" name="" type="checkbox" class="custom-control-input">
-                  <span class="custom-control-indicator"></span>
-                  <span class="custom-control-description">Include second variable</span>
-                </label>
               </div>
             </div>
-            <div class="form-group row" style="display: none">
-              <label class="col-sm-3 form-control-label">Historical chart</label>
+            <div class="row">
+              <div class="offset-sm-3 col-sm-9">
+                <p class="text-center"><button class="btn btn-secondary" id="add-secondary">Add secondary variable</button></p>
+              </div>
+            </div>
+            <div class="form-group row" id="secondary-variable" style="display: none">
+              <label for="meter_id2" class="col-sm-3 form-control-label">Secondary variable</label>
               <div class="col-sm-9">
-                <input type="color" class="form-control" name="color2" value="#bdc3c7" id="color2" style="margin-bottom:5px;height: 40px;padding: 0px;border: none">
+                <select style="width:100%" name="meter_id2" id="meter_id2" class="custom-select">
+                  <?php echo $dropdown_html ?>
+                </select>
+                <input type="color" class="form-control" name="color3" value="#33A7FF" id="color3" style="margin-top:10px;margin-bottom:5px;height: 40px;padding: 0px;border: none">
                 <label class="custom-control custom-checkbox">
                   <input id="dasharr3" name="dasharr3" type="checkbox" class="custom-control-input">
                   <span class="custom-control-indicator"></span>
@@ -137,6 +145,7 @@ foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY
                   <span class="custom-control-indicator"></span>
                   <span class="custom-control-description">Filled</span>
                 </label>
+                <p><small><a href="#" id="remove-secondary">Remove secondary variable</a>.</small></p>
               </div>
             </div>
             <div class="form-group row">
@@ -157,19 +166,18 @@ foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY
             </div>
             <div class="form-group row">
               <div class="offset-sm-3 col-sm-9">
-                <a href="#" id="preview" class="btn btn-secondary">Preview chart</a>
                 <button type="submit" name="submit" id="submit" class="btn btn-primary">Save options</button>
               </div>
             </div>
           </form>
         </div>
-        <div class="col-xs-12 col-sm-5">
+        <!-- <div class="col-xs-12 col-sm-5">
           <h1>Preview</h1>
           <hr>
           <div id="preview-frame">
             <h2 class="text-center text-muted">Preview will appear here.</h2>
           </div>
-        </div>
+        </div> -->
       </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
@@ -177,37 +185,50 @@ foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
     <script>
 
-    function setPreview(qs) {
-      console.log(qs);
-      $('#preview-frame').html('<iframe frameborder="0" width="450px" height="450px" src="<?php echo "http://{$_SERVER['HTTP_HOST']}/".basename(dirname(__DIR__))."/time-series/chart.php?"; ?>' + qs + '"></iframe>');
-    }
-
-    // http://stackoverflow.com/a/111545/2624391
-    function encodeQueryData(data) {
-      var ret = [];
-      for (var d in data)
-        ret.push(encodeURIComponent(d) + "=" + encodeURIComponent(data[d]));
-      return ret.join("&");
-    }
-    
-    $('#preview').on('click', function() {
-      var data = {
-        'meter_id': $('#meter_id').val(),
-        'dasharr1': ($('#dasharr1').is(':checked') ? 'on' : 'off'),
-        'fill1': ($('#fill1').is(':checked') ? 'on' : 'off'),
-        'color1': $('#color1').val(),
-        'meter_id2': $('#meter_id2').val(),
-        'dasharr2': ($('#dasharr2').is(':checked') ? 'on' : 'off'),
-        'fill2': ($('#fill2').is(':checked') ? 'on' : 'off'),
-        'color3': $('#color3').val(),
-        'dasharr3': ($('#dasharr3').is(':checked') ? 'on' : 'off'),
-        'fill3': ($('#fill3').is(':checked') ? 'on' : 'off'),
-        'color2': $('#color2').val(),
-        'start': $('#start').val(),
-        'ticks': ($('#ticks').is(':checked') ? 'on' : 'off')
-      };
-      setPreview(encodeQueryData(data));
+    $('#add-secondary').on('click', function(e) {
+      e.preventDefault();
+      $('#secondary-variable').css('display', '');
+      $(this).css('display', 'none');
     });
+
+    $('#remove-secondary').on('click', function(e) {
+      e.preventDefault();
+      $('#secondary-variable').css('display', 'none');
+      $('#add-secondary').css('display', '');
+      $('#meter_id2').val($('#meter_id').val());
+    });
+
+    // function setPreview(qs) {
+    //   console.log(qs);
+    //   $('#preview-frame').html('<iframe frameborder="0" width="450px" height="450px" src="../time-series/chart.php?' + qs + '"></iframe>');
+    // }
+
+    // // http://stackoverflow.com/a/111545/2624391
+    // function encodeQueryData(data) {
+    //   var ret = [];
+    //   for (var d in data)
+    //     ret.push(encodeURIComponent(d) + "=" + encodeURIComponent(data[d]));
+    //   return ret.join("&");
+    // }
+    
+    // $('#preview').on('click', function() {
+    //   var data = {
+    //     'meter_id': $('#meter_id').val(),
+    //     'dasharr1': ($('#dasharr1').is(':checked') ? 'on' : 'off'),
+    //     'fill1': ($('#fill1').is(':checked') ? 'on' : 'off'),
+    //     'color1': $('#color1').val(),
+    //     'meter_id2': $('#meter_id2').val(),
+    //     'dasharr2': ($('#dasharr2').is(':checked') ? 'on' : 'off'),
+    //     'fill2': ($('#fill2').is(':checked') ? 'on' : 'off'),
+    //     'color3': $('#color3').val(),
+    //     'dasharr3': ($('#dasharr3').is(':checked') ? 'on' : 'off'),
+    //     'fill3': ($('#fill3').is(':checked') ? 'on' : 'off'),
+    //     'color2': $('#color2').val(),
+    //     'start': $('#start').val(),
+    //     'ticks': ($('#ticks').is(':checked') ? 'on' : 'off')
+    //   };
+    //   setPreview(encodeQueryData(data));
+    // });
 
     </script>
   </body>

@@ -1,5 +1,6 @@
 <?php
 require '../includes/db.php';
+require 'includes/check-signed-in.php';
 if (!empty($_POST['name'])) {
   if (!empty($_POST['old_name'])) {
     $stmt = $db->prepare('UPDATE time_series SET name = ?, bin1 = ?, bin2 = ?, bin3 = ?, bin4 = ?, bin5 = ? WHERE name = ?');

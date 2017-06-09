@@ -2,6 +2,7 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
+require 'includes/check-signed-in.php';
 function gaugeURL($rv_id, $meter_id, $color, $bg, $height, $width, $font_family, $title, $title2, $border_radius, $rounding, $ver, $units) {
   $q = http_build_query(array(
     'rv_id' => $rv_id,
@@ -57,6 +58,10 @@ if (isset($_POST['delete-meter-id'])) {
   $stmt = $db->prepare('DELETE FROM meter_data WHERE meter_id = ? AND resolution = ?');
   $stmt->execute(array($_POST['delete-meter-id'], $_POST['delete-res']));
 }
+if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
+  $stmt = $db->prepare('UPDATE buildings SET custom_img = ? WHERE id = ?');
+  $stmt->execute(array($_POST['building-image'], $_POST['building-id']));
+}
 /*
 foreach ($db->query("SELECT * FROM gauges WHERE user_id = {$user_id} AND meter_id = {$meter['id']}") as $gauge) {
                     $url = gaugeURL($gauge['rv_id'], $gauge['meter_id'], $gauge['color'], $gauge['bg'], $gauge['height'], $gauge['width'], $gauge['font_family'], $gauge['title'], $gauge['title2'], $gauge['border_radius'], $gauge['rounding'], $gauge['ver'], $gauge['units']);
@@ -66,8 +71,8 @@ foreach ($db->query("SELECT * FROM gauges WHERE user_id = {$user_id} AND meter_i
 
 ----
 
-foreach ($db->query("SELECT * FROM time_series_configs WHERE user_id = {$user_id} AND meter_id1 = {$meter['id']} OR meter_id2 = {$meter['id']}") as $timeseries) {
-                    $url2 = timeseriesURL2($timeseries['meter_id1'], $timeseries['dasharr1'], $timeseries['fill1'], $timeseries['meter_id2'], $timeseries['dasharr2'], $timeseries['fill2'], $timeseries['dasharr3'], $timeseries['fill3'], $timeseries['start'], $timeseries['ticks'], $timeseries['color1'], $timeseries['color2'], $timeseries['color3']);
+foreach ($db->query("SELECT * FROM time_series_configs WHERE user_id = {$user_id} AND meter_id = {$meter['id']} OR meter_id2 = {$meter['id']}") as $timeseries) {
+                    $url2 = timeseriesURL2($timeseries['meter_id'], $timeseries['dasharr1'], $timeseries['fill1'], $timeseries['meter_id2'], $timeseries['dasharr2'], $timeseries['fill2'], $timeseries['dasharr3'], $timeseries['fill3'], $timeseries['start'], $timeseries['ticks'], $timeseries['color1'], $timeseries['color2'], $timeseries['color3']);
                     echo "<li><a href='{$url2}' target='_blank'>Open timeseries</a></li>";
                   }
  */
@@ -135,7 +140,7 @@ function name_that_grouping($grouping) {
         <div class="col-sm-8">
           <h1>Meters</h1>
           <p>Clicking a relative value configuration will recalculate and display the relative value and update all identical configurations. Updating the database with the &quot;Sync data&quot; button will request all data from the BuildingOS API recorded since the last recording in the database. Deleting data for a meter can be used to view the result of a large API request.</p>
-          <p>On average, the last attempt to update a meter was made <?php echo $db->query('SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE (gauges_using > 0 OR for_orb > 0 OR orb_server > 0 OR timeseries_using > 0) AND user_id = '.intval($user_id))->fetchColumn(); ?> minutes ago.</p>
+          <p>On average, the last attempt to update a meter was made <?php echo $db->query('SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE (gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\') AND user_id = '.intval($user_id))->fetchColumn(); ?> minutes ago.</p>
         </div>
         <div class="col-sm-4">
           <form action="" method="GET" id='sortbyform'>
@@ -150,7 +155,7 @@ function name_that_grouping($grouping) {
       </div>
       <!-- <p style="font-size:13px"><span class="bg-success" style="height: 15px;width: 15px;display: inline-block;position: relative;top: 2px">&nbsp;</span> Data are being cached because a saved time series/gauge/old orb is using it or it is used by environmentalorb.org.</p>
       <p style="margin-bottom: 20px;font-size:13px"><span class="bg-inverse" style="height: 15px;width: 15px;display: inline-block;position: relative;top: 2px">&nbsp;</span> Data are not collected for this meter because no apps use it.</p> -->
-      <?php foreach ($db->query("SELECT id, name, hidden FROM buildings WHERE user_id = {$user_id} ORDER BY hidden ASC, name ASC") as $building) {
+      <?php foreach ($db->query("SELECT id, name, hidden, custom_img FROM buildings WHERE user_id = {$user_id} ORDER BY hidden ASC, name ASC") as $building) {
         if ($db->query("SELECT COUNT(*) FROM meters WHERE building_id = {$building['id']}")->fetchColumn() === '0') { // skip buildings with no meters
           continue;
         }
@@ -163,6 +168,15 @@ function name_that_grouping($grouping) {
               <button type="button" class="btn btn-sm <?php echo ($building['hidden'] === '0') ? '' : 'active'; ?> btn-secondary hide-building" data-building_id="<?php echo $building['id'] ?>" data-action="hide-building">Hidden</button>
             </div>
           </h3>
+          <?php if ($building['custom_img'] === null) { ?>
+          <form action="" method="POST" class="form-inline">
+            <input type="hidden" name="building-id" value="<?php echo $building['id'] ?>">
+            <?php $rand = uniqid(); ?>
+            <label class="sr-only" for="<?php echo $rand ?>">Building image URL</label>
+            <input type="text" class="form-control form-control-sm mb-2 mr-sm-2 mb-sm-0" id="<?php echo $rand ?>" placeholder="Building image URL" name="building-image">
+            <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+          </form>
+          <?php } ?>
           <table class="table table-sm" style="overflow-x: scroll;">
             <thead>
               <tr>
@@ -179,11 +193,11 @@ function name_that_grouping($grouping) {
             <tbody>
               <?php
               if (isset($_GET['sortby']) && $_GET['sortby'] === 'ignored_meters') {
-                $sql = 'AND (gauges_using = 0 AND for_orb = 0 AND orb_server = 0 AND timeseries_using = 0) ';
+                $sql = 'AND (gauges_using = 0 AND for_orb = 0 AND timeseries_using = 0) ';
               } elseif (isset($_GET['sortby']) && $_GET['sortby'] === 'all') {
                 $sql = '';
               } else {
-                $sql = 'AND (gauges_using > 0 OR for_orb > 0 OR orb_server > 0 OR timeseries_using > 0) ';
+                $sql = 'AND (gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\') ';
               }
               foreach ($db->query("SELECT id, user_id, bos_uuid, name, url, live_last_updated, quarterhour_last_updated, hour_last_updated, month_last_updated, gauges_using, timeseries_using, for_orb, orb_server FROM meters WHERE building_id = {$building['id']} {$sql}ORDER BY name ASC") as $meter) {
                 echo "<tr>";

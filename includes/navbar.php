@@ -1,5 +1,9 @@
 <ul class="nav nav-tabs">
-  <?php $fn = basename($_SERVER['PHP_SELF'], '.php'); ?>
+  <?php
+  $fn = basename($_SERVER['PHP_SELF'], '.php');
+  $user_prefs = $db->query("SELECT gauges, cwd, timeseries FROM users WHERE id = {$user_id}")->fetch();
+  if ($user_prefs['cwd'] === '1') {
+  ?>
   <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Citywide Dashboard</a>
     <div class="dropdown-menu">
@@ -13,7 +17,7 @@
       <a class="dropdown-item" href="../cwd/" target="_blank">Preview</a>
     </div>
   </li>
-  <?php if ($symlink === 'oberlin') { ?>
+  <?php } if ($symlink === 'oberlin') { ?>
   <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Calendar</a>
     <div class="dropdown-menu">
@@ -25,7 +29,7 @@
       <a class="dropdown-item" href="../calendar/" target="_blank">View calendar</a>
     </div>
   </li>
-  <?php } ?>
+  <?php } if ($user_prefs['gauges'] === '1') { ?>
   <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Gauges</a>
     <div class="dropdown-menu">
@@ -33,6 +37,7 @@
       <a class="dropdown-item <?php echo ($fn === 'manage-gauges') ? 'active' : ''; ?>" href="manage-gauges.php">Manage gauges</a>
     </div>
   </li>
+  <?php } if ($user_prefs['timeseries'] === '1') { ?>
   <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Time series</a>
     <div class="dropdown-menu">
@@ -41,7 +46,7 @@
       <a class="dropdown-item <?php echo ($fn === 'timeseries-animations') ? 'active' : ''; ?>" href="timeseries-animations.php">Customize animations</a>
     </div>
   </li>
-  <?php if ($symlink === 'oberlin') { ?>
+  <?php } if ($symlink === 'oberlin') { ?>
   <li class="nav-item">
     <a class="nav-link <?php echo ($fn === 'orbs') ? 'active' : ''; ?>" href="orbs.php">Orbs</a>
   </li>

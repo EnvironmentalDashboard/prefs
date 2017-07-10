@@ -5,7 +5,6 @@ require '../includes/db.php';
 require '../includes/class.BuildingOS.php';
 require 'includes/check-signed-in.php';
 if (isset($_POST['delete-account'])) {
-  $slug = explode('/', $_SERVER['REQUEST_URI'])[1];
   $stmt = $db->prepare('DELETE FROM users WHERE id = ?');
   $stmt->execute(array($user_id));
   // all the orgs that use the api record created by $user_id
@@ -45,13 +44,34 @@ if (isset($_POST['delete-account'])) {
   $stmt->execute(array($user_id));
   $stmt = $db->prepare('DELETE FROM timing WHERE user_id = ?');
   $stmt->execute(array($user_id));
-  shell_exec('rm '.escapeshellarg("/var/www/html/{$slug}"));
+  shell_exec('rm '.escapeshellarg("/var/www/html/{$symlink}"));
   header('Location: /');
   exit();
 }
 if (isset($_POST['orgs'])) {
+  $stmt = $db->prepare('DELETE FROM users_orgs_map WHERE user_id = ?');
+  $stmt->execute(array($user_id));
   foreach ($_POST['orgs'] as $org) {
-    # code...
+    $stmt = $db->prepare('INSERT INTO users_orgs_map (user_id, org_id) VALUES (?, ?)');
+    $org_id = explode('/', $org);
+    $org_id = $org_id[count($org_id)-1];
+    $stmt->execute(array($user_id, $org_id));
+  }
+}
+if (isset($_POST['apps'])) {
+  $stmt = $db->prepare('UPDATE users SET gauges = 0, cwd = 0, timeseries = 0 WHERE id = ?');
+  $stmt->execute(array($user_id));
+  if (in_array('gauges', $_POST['apps'])) {
+    $stmt = $db->prepare('UPDATE users SET gauges = 1 WHERE id = ?');
+    $stmt->execute(array($user_id));
+  }
+  if (in_array('cwd', $_POST['apps'])) {
+    $stmt = $db->prepare('UPDATE users SET cwd = 1 WHERE id = ?');
+    $stmt->execute(array($user_id));
+  }
+  if (in_array('timeseries', $_POST['apps'])) {
+    $stmt = $db->prepare('UPDATE users SET timeseries = 1 WHERE id = ?');
+    $stmt->execute(array($user_id));
   }
 }
 $bos = new BuildingOS($db, $db->query("SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id} LIMIT 1")->fetchColumn());
@@ -106,8 +126,30 @@ $bos = new BuildingOS($db, $db->query("SELECT org_id FROM users_orgs_map WHERE u
             } ?>
             <button type="submit" class="btn btn-primary">Save changes</button>
           </form>
-          <!-- update apps -->
-          <form action=""></form>
+          <div class="spacer" style="clear: both;height: 30px"></div>
+          <h4>Installed web apps</h4>
+          <hr>
+          <form action="" method="POST">
+            <div class='form-check'>
+              <label class='form-check-label'>
+                <input name='apps[]' class='form-check-input' type='checkbox' value='gauges' <?php echo ($user_prefs['gauges'] === '1') ? 'checked' : ''; ?>>
+                Gauges
+              </label>
+            </div>
+            <div class='form-check'>
+              <label class='form-check-label'>
+                <input name='apps[]' class='form-check-input' type='checkbox' value='cwd' <?php echo ($user_prefs['cwd'] === '1') ? 'checked' : ''; ?>>
+                Citywide Dashboard
+              </label>
+            </div>
+            <div class='form-check'>
+              <label class='form-check-label'>
+                <input name='apps[]' class='form-check-input' type='checkbox' value='timeseries' <?php echo ($user_prefs['timeseries'] === '1') ? 'checked' : ''; ?>>
+                Time series
+              </label>
+            </div>
+            <button type="submit" class="btn btn-primary">Save changes</button>
+          </form>
         </div>
         <div class="col-sm-4">
           <h4>Delete account</h4>

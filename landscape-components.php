@@ -3,31 +3,34 @@ error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
 require 'includes/check-signed-in.php';
-if (isset($_POST['submit'])) {
+if (isset($_POST['submit'])) { // edit record
   if (!file_exists($_FILES['file']['tmp_name']) || !is_uploaded_file($_FILES['file']['tmp_name'])) {
     $stmt = $db->prepare("UPDATE cwd_landscape_components
-      SET pos = ?, widthxheight = ?, title = ?, link = ?, `text` = ?, `text_pos` = ?, `order` = ?
-      WHERE component = ? LIMIT 1");
+      SET pos = ?, widthxheight = ?, title = ?, link = ?, `text` = ?, `order` = ?
+      WHERE component = ? AND user_id = ? LIMIT 1");
     $stmt->execute(array(
       $_POST['pos'],
       $_POST['widthxheight'],
       $_POST['title'],
       $_POST['link'],
       $_POST['text'],
-      $_POST['text_pos'],
       $_POST['order'],
-      $_POST['component']
+      $_POST['component'],
+      $user_id
     ));
   }
-  else {
-    $dir = __dir__; // Right now is /home/admin060606/public_html/lucid/prefs
+  else { // have to upload new image as well
+    $dir = __dir__;
     $uploaddir = dirname($dir) . '/cwd/img/';
     $filename = $_FILES['file']['name'];
     $uploadfile = $uploaddir . basename($filename);
+    if (file_exists($uploadfile)) {
+      $uploadfile = $uploaddir . uniqid();
+    }
     move_uploaded_file($_FILES['file']['tmp_name'], $uploadfile);
     $stmt = $db->prepare("UPDATE cwd_landscape_components
-      SET pos = ?, widthxheight = ?, title = ?, link = ?, img = ?, `text` = ?, `text_pos` = ?, `order` = ?
-      WHERE component = ? LIMIT 1");
+      SET pos = ?, widthxheight = ?, title = ?, link = ?, img = ?, `text` = ?, `order` = ?
+      WHERE component = ? AND user_id = ? LIMIT 1");
     $stmt->execute(array(
       $_POST['pos'],
       $_POST['widthxheight'],
@@ -35,19 +38,22 @@ if (isset($_POST['submit'])) {
       $_POST['link'],
       'http://'.$_SERVER['HTTP_HOST'].'/cwd/img/' . $filename,
       $_POST['text'],
-      $_POST['text_pos'],
       $_POST['order'],
-      $_POST['component']
+      $_POST['component'],
+      $user_id
     ));
   }
 }
-if (isset($_POST['add-landscape-component'])) {
-  $dir = __dir__; // Right now is /home/admin060606/public_html/lucid/prefs
+if (isset($_POST['add-landscape-component'])) { // add record
+  $dir = __dir__;
   $uploaddir = dirname($dir) . '/cwd/img/';
   $uploadfile = $uploaddir . basename($filename);
+  if (file_exists($uploadfile)) {
+    $uploadfile = $uploaddir . uniqid();
+  }
   move_uploaded_file($_FILES['file']['tmp_name'], $uploadfile);
   $stmt = $db->prepare("INSERT INTO cwd_landscape_components
-    (user_id, component, pos, widthxheight, title, link, img, `text`, text_pos, `order`)
+    (user_id, component, pos, widthxheight, title, link, img, `text`, `order`)
     VALUES (:id, :c, :p, :wh, :t, :l, :i, :txt, :txtp, :o)");
   $stmt->execute(array(
     ':id' => $user_id,
@@ -58,23 +64,22 @@ if (isset($_POST['add-landscape-component'])) {
     ':l' => $_POST['link'],
     ':i' => 'http://'.$_SERVER['HTTP_HOST'].'/cwd/img/' . $filename,
     ':txt' => $_POST['text'],
-    ':txtp' => $_POST['text_pos'],
     ':o' => $_POST['order']
   ));
 
 }
 if (isset($_POST['delete'])) {
-  $stmt = $db->prepare('DELETE FROM cwd_landscape_components WHERE component = ?');
-  $stmt->execute(array($_POST['delete']));
+  $stmt = $db->prepare('DELETE FROM cwd_landscape_components WHERE component = ? AND user_id = ?');
+  $stmt->execute(array($_POST['delete'], $user_id));
 }
 
 if (isset($_POST['disable'])) {
-  $stmt = $db->prepare('UPDATE cwd_landscape_components SET hidden = 1 WHERE component = ?');
-  $stmt->execute(array($_POST['disable']));
+  $stmt = $db->prepare('UPDATE cwd_landscape_components SET hidden = 1 WHERE component = ? AND user_id = ?');
+  $stmt->execute(array($_POST['disable'], $user_id));
 }
 if (isset($_POST['enable'])) {
-  $stmt = $db->prepare('UPDATE cwd_landscape_components SET hidden = 0 WHERE component = ?');
-  $stmt->execute(array($_POST['enable']));
+  $stmt = $db->prepare('UPDATE cwd_landscape_components SET hidden = 0 WHERE component = ? AND user_id = ?');
+  $stmt->execute(array($_POST['enable'], $user_id));
 }
 ?>
 <!DOCTYPE html>
@@ -108,6 +113,7 @@ if (isset($_POST['enable'])) {
               <div class="form-group">
                 <label for="edit-widthxheight">Width x Height</label>
                 <input type="text" class="form-control" id="edit-widthxheight" name="widthxheight" value="">
+                <p><small class="text-muted" id="default-wxh"></small></p>
               </div>
               <div class="form-group">
                 <label for="edit-title">Title</label>
@@ -116,10 +122,6 @@ if (isset($_POST['enable'])) {
               <div class="form-group">
                 <label for="edit-link">Link</label>
                 <input type="text" class="form-control" id="edit-link" name="link" value="">
-              </div>
-              <div class="form-group">
-                <label for="edit-text_pos">x,y coordinates of text box</label>
-                <input type="text" class="form-control" id="edit-text_pos" name="text_pos" value="">
               </div>
               <div class="form-group">
               <label for="edit-order">Z-order</label>
@@ -156,54 +158,9 @@ if (isset($_POST['enable'])) {
       </div>
       <div style="clear: both;height: 20px"></div>
       <div class="row">
-        <div class="col-sm-3">
-          <h4>New component</h4>
-          <form enctype="multipart/form-data" action="" method="POST">
-            <div class="form-group">
-              <label for="pos">x,y coordinates of component</label>
-              <input type="text" class="form-control" name="pos" id="pos">
-              <small class="text-muted">Coordinates seperated by a comma</small>
-            </div>
-            <div class="form-group">
-              <label for="wxh">Width x Height</label>
-              <input type="text" class="form-control" name="wxh" id="wxh">
-              <small class="text-muted">Height and width seperated by an "x"</small>
-            </div>
-            <div class="form-group">
-              <label for="title">Title</label>
-              <input type="text" class="form-control" name="title" id="title">
-            </div>
-            <div class="form-group">
-              <label for="link">Link</label>
-              <input type="text" class="form-control" name="link" id="link">
-              <small class="text-muted">The "Read more" link</small>
-            </div>
-            <div class="form-group">
-              <label for="text">Description</label>
-              <textarea name="text" class="form-control" id="text" cols="30" rows="10"></textarea>
-            </div>
-            <div class="form-group">
-              <label for="text_pos">x,y coordinates of text box</label>
-              <input type="text" class="form-control" name="text_pos" id="text_pos">
-            </div>
-            <div class="form-group">
-              <label for="order">Z-order</label>
-              <select class="c-select" name="order" id="order">
-                <?php for ($i = 1; $i < 255; $i++) { 
-                  echo "<option value=\"{$i}\">{$i}</option>";
-                } ?>
-              </select>
-              <p><small class="text-muted">A larger <a target="_blank" href="https://en.wikipedia.org/wiki/Z-order">z-order</a> means that component will be placed on top of components with a smaller z-order.</small></p>
-            </div>
-            <div class="form-group">
-              <label for="file">Upload image</label>
-              <input type="file" class="form-control-file" id="file" name="file" value="">
-            </div>
-            <input type="submit" name="add-landscape-component" value="Add component" class="btn btn-primary">
-          </form>
-        </div>
         <div class="col-sm-9">
           <h4>Landscape components</h4>
+          <p>The icons on Citywide Dashboard dragged around when you're signed in. Double-click an icon to save its position.</p>
           <table class="table table-responsive">
             <thead>
               <tr>
@@ -216,9 +173,9 @@ if (isset($_POST['enable'])) {
               </tr>
             </thead>
             <tbody>
-              <?php foreach ($db->query("SELECT * FROM cwd_landscape_components WHERE user_id = {$user_id} ORDER BY hidden DESC, removable, component") as $row) { ?>
+              <?php foreach ($db->query("SELECT * FROM cwd_landscape_components WHERE user_id = {$user_id} ORDER BY component ASC") as $row) { ?>
               <tr>
-                <td><?php echo "<img class='img-fluid' src='{$row['img']}' />"; ?></td>
+                <td><?php echo "<img id='image-{$row['component']}' class='img-fluid' src='{$row['img']}' />"; ?></td>
                 <td><?php echo $row['title'] ?></td>
                 <td style="width:15%;"><a href="<?php echo $row['link'] ?>" target="_blank">Open link</a></td>
                 <td><?php echo $row['text'] ?></td>
@@ -229,7 +186,6 @@ if (isset($_POST['enable'])) {
                 data-title="<?php echo $row['title'] ?>"
                 data-link="<?php echo $row['link'] ?>"
                 data-text="<?php echo $row['text'] ?>"
-                data-text_pos="<?php echo $row['text_pos'] ?>"
                 data-removable="<?php echo $row['removable']; ?>"
                 href="#">Edit</a></td>
                 <?php if ($row['removable']) { ?>
@@ -259,6 +215,49 @@ if (isset($_POST['enable'])) {
             </tbody>
           </table>
         </div>
+
+        <div class="col-sm-3">
+          <h4>New component</h4>
+          <form enctype="multipart/form-data" action="" method="POST">
+            <div class="form-group">
+              <label for="pos">x,y coordinates of component</label>
+              <input type="text" class="form-control" name="pos" id="pos" value="0,0">
+              <small class="text-muted">Coordinates seperated by a comma</small>
+            </div>
+            <div class="form-group">
+              <label for="wxh">Width x Height</label>
+              <input type="text" class="form-control" name="wxh" id="wxh" value="0x0">
+              <small class="text-muted">Height and width seperated by an "x"</small>
+            </div>
+            <div class="form-group">
+              <label for="title">Title</label>
+              <input type="text" class="form-control" name="title" id="title">
+            </div>
+            <div class="form-group">
+              <label for="link">Link</label>
+              <input type="text" class="form-control" name="link" id="link">
+              <small class="text-muted">The "Read more" link</small>
+            </div>
+            <div class="form-group">
+              <label for="text">Description</label>
+              <textarea name="text" class="form-control" id="text" cols="30" rows="10"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="order">Z-order</label>
+              <select class="c-select" name="order" id="order">
+                <?php for ($i = 1; $i < 255; $i++) { 
+                  echo "<option value=\"{$i}\">{$i}</option>";
+                } ?>
+              </select>
+              <p><small class="text-muted">A larger <a target="_blank" href="https://en.wikipedia.org/wiki/Z-order">z-order</a> means that component will be placed on top of components with a smaller z-order.</small></p>
+            </div>
+            <div class="form-group">
+              <label for="file">Upload image</label>
+              <input type="file" class="form-control-file" id="file" name="file" value="">
+            </div>
+            <input type="submit" name="add-landscape-component" value="Add component" class="btn btn-primary">
+          </form>
+        </div>
       </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
@@ -274,15 +273,21 @@ if (isset($_POST['enable'])) {
             t = $(this).data('title'),
             l = $(this).data('link'),
             txt = $(this).data('text'),
-            txtp = $(this).data('text_pos'),
             removable = $(this).data('removable');
+        // See https://stackoverflow.com/a/1093364/2624391
+        var img = $('#image-' + c);
+        var theImage = new Image();
+        theImage.src = img.attr('src');
+        if (wxh == '' || wxh == '0x0') {
+          wxh = theImage.width + 'x' + theImage.height;
+        }
+        $('#default-wxh').text('The default size for this image is ' + theImage.width + 'x' + theImage.height);
         $('#id').val(c);
         $('#edit-pos').val(p);
         $('#edit-widthxheight').val(wxh);
         $('#edit-title').val(t);
         $('#edit-link').val(l);
         $('#edit-text').val(txt);
-        $('#edit-text_pos').val(txtp);
         if (!removable) {
           $('#hide-file').css('display', 'none');
         }

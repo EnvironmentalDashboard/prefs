@@ -140,7 +140,7 @@ function name_that_grouping($grouping) {
         <div class="col-sm-8">
           <h1>Meters</h1>
           <p>Clicking a relative value configuration will recalculate and display the relative value and update all identical configurations. Updating the database with the &quot;Sync data&quot; button will request all data from the BuildingOS API recorded since the last recording in the database. Deleting data for a meter can be used to view the result of a large API request.</p>
-          <p>On average, the last attempt to update a meter was made <?php echo $db->query('SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE (gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\') AND user_id = '.intval($user_id))->fetchColumn(); ?> minutes ago.</p>
+          <p>On average, the last attempt to update a meter was made <?php echo $db->query('SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE (gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\') AND org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = '.intval($user_id).')')->fetchColumn(); ?> minutes ago.</p>
         </div>
         <div class="col-sm-4">
           <form action="" method="GET" id='sortbyform'>
@@ -155,7 +155,7 @@ function name_that_grouping($grouping) {
       </div>
       <!-- <p style="font-size:13px"><span class="bg-success" style="height: 15px;width: 15px;display: inline-block;position: relative;top: 2px">&nbsp;</span> Data are being cached because a saved time series/gauge/old orb is using it or it is used by environmentalorb.org.</p>
       <p style="margin-bottom: 20px;font-size:13px"><span class="bg-inverse" style="height: 15px;width: 15px;display: inline-block;position: relative;top: 2px">&nbsp;</span> Data are not collected for this meter because no apps use it.</p> -->
-      <?php foreach ($db->query("SELECT id, name, hidden, custom_img FROM buildings WHERE user_id = {$user_id} ORDER BY hidden ASC, name ASC") as $building) {
+      <?php foreach ($db->query("SELECT id, name, hidden, custom_img FROM buildings WHERE org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id}) ORDER BY hidden ASC, name ASC") as $building) {
         if ($db->query("SELECT COUNT(*) FROM meters WHERE building_id = {$building['id']}")->fetchColumn() === '0') { // skip buildings with no meters
           continue;
         }
@@ -199,7 +199,7 @@ function name_that_grouping($grouping) {
               } else {
                 $sql = 'AND (gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\') ';
               }
-              foreach ($db->query("SELECT id, user_id, bos_uuid, name, url, live_last_updated, quarterhour_last_updated, hour_last_updated, month_last_updated, gauges_using, timeseries_using, for_orb, orb_server FROM meters WHERE building_id = {$building['id']} {$sql}ORDER BY name ASC") as $meter) {
+              foreach ($db->query("SELECT id, org_id, bos_uuid, name, url, live_last_updated, quarterhour_last_updated, hour_last_updated, month_last_updated, gauges_using, timeseries_using, for_orb, orb_server FROM meters WHERE building_id = {$building['id']} {$sql}ORDER BY name ASC") as $meter) {
                 echo "<tr>";
                 echo "<td>{$meter['id']}</td>";
                 echo "<td>{$meter['name']}</td>";
@@ -221,10 +221,10 @@ function name_that_grouping($grouping) {
                     Sync data
                   </button>
                   <div class=\"dropdown-menu\" aria-labelledby=\"refresh-data-toggle\">
-                    <button type='button' class='dropdown-item' data-action='update-data' data-url='{$meter['url']}' data-user_id='{$meter['user_id']}' data-meter_uuid='{$meter['bos_uuid']}' data-meter_id='{$meter['id']}' data-resolution='live' data-toggle='modal' data-target='#modal'>Live (updated ".time_ago($meter['live_last_updated']).")</button>
-                    <button type='button' class='dropdown-item' data-action='update-data' data-url='{$meter['url']}' data-user_id='{$meter['user_id']}' data-meter_uuid='{$meter['bos_uuid']}' data-meter_id='{$meter['id']}' data-resolution='quarterhour' data-toggle='modal' data-target='#modal'>Quarter hour (updated ".time_ago($meter['quarterhour_last_updated']).")</button>
-                    <button type='button' class='dropdown-item' data-action='update-data' data-url='{$meter['url']}' data-user_id='{$meter['user_id']}' data-meter_uuid='{$meter['bos_uuid']}' data-meter_id='{$meter['id']}' data-resolution='hour' data-toggle='modal' data-target='#modal'>Hour (updated ".time_ago($meter['hour_last_updated']).")</button>
-                    <button type='button' class='dropdown-item' data-action='update-data' data-url='{$meter['url']}' data-user_id='{$meter['user_id']}' data-meter_uuid='{$meter['bos_uuid']}' data-meter_id='{$meter['id']}' data-resolution='month' data-toggle='modal' data-target='#modal'>Month (updated ".time_ago($meter['month_last_updated']).")</button>
+                    <button type='button' class='dropdown-item' data-action='update-data' data-url='{$meter['url']}' data-org_id='{$meter['org_id']}' data-meter_uuid='{$meter['bos_uuid']}' data-meter_id='{$meter['id']}' data-resolution='live' data-toggle='modal' data-target='#modal'>Live (updated ".time_ago($meter['live_last_updated']).")</button>
+                    <button type='button' class='dropdown-item' data-action='update-data' data-url='{$meter['url']}' data-org_id='{$meter['org_id']}' data-meter_uuid='{$meter['bos_uuid']}' data-meter_id='{$meter['id']}' data-resolution='quarterhour' data-toggle='modal' data-target='#modal'>Quarter hour (updated ".time_ago($meter['quarterhour_last_updated']).")</button>
+                    <button type='button' class='dropdown-item' data-action='update-data' data-url='{$meter['url']}' data-org_id='{$meter['org_id']}' data-meter_uuid='{$meter['bos_uuid']}' data-meter_id='{$meter['id']}' data-resolution='hour' data-toggle='modal' data-target='#modal'>Hour (updated ".time_ago($meter['hour_last_updated']).")</button>
+                    <button type='button' class='dropdown-item' data-action='update-data' data-url='{$meter['url']}' data-org_id='{$meter['org_id']}' data-meter_uuid='{$meter['bos_uuid']}' data-meter_id='{$meter['id']}' data-resolution='month' data-toggle='modal' data-target='#modal'>Month (updated ".time_ago($meter['month_last_updated']).")</button>
                   </div>
                 </div>
                 </td>";
@@ -306,7 +306,7 @@ function name_that_grouping($grouping) {
           });
         } else if (action === 'update-data') {
           $('#modal-title').text('Retrieving data from BuildingOS API');
-          $.getJSON( "../scripts/update-meter.php", {user_id: button.data('user_id'), meter_id: button.data('meter_id'), meter_uuid: button.data('meter_uuid'), meter_url: button.data('url'), res: button.data('resolution')})
+          $.getJSON( "../scripts/update-meter.php", {org_id: button.data('org_id'), meter_id: button.data('meter_id'), meter_uuid: button.data('meter_uuid'), meter_url: button.data('url'), res: button.data('resolution')})
             .done(function( json ) {
               // console.log( "JSON Data: " + json );
               $('#modal-title').text('Data returned from BuildingOS API');

@@ -50,6 +50,9 @@
     <a class="nav-link <?php echo ($fn === 'meters') ? 'active' : ''; ?>" href="meters.php">Meters</a>
   </li>
   <li class="nav-item">
+    <a class="nav-link <?php echo ($fn === 'account') ? 'active' : ''; ?>" href="account.php">Account</a>
+  </li>
+  <li class="nav-item">
     <a class="nav-link <?php echo ($fn === 'docs') ? 'active' : ''; ?>" href="docs.php">Help</a>
   </li>
 </ul>

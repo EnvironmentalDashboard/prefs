@@ -196,7 +196,7 @@ if (!empty($_POST['name'])) {
         </div>
       </div>
       <div class="row">
-        <nav aria-label="Page navigation" class="text-xs-center">
+        <nav aria-label="Page navigation" class="text-center">
             <ul class="pagination pagination-lg">
               <?php if ($page > 0) { ?>
               <li class="page-item">

@@ -1,17 +1,22 @@
 <?php
 require '../includes/db.php';
 if (isset($_POST['pass']) && isset($_POST['org'])) {
-  $stmt = $db->prepare('SELECT password FROM users WHERE slug = ?');
+  $stmt = $db->prepare('SELECT password, token FROM users WHERE slug = ?');
   $stmt->execute(array($_POST['org']));
-  $hash = $stmt->fetchColumn();
+  $users = $stmt->fetch();
+  $hash = $users['password'];
   if ($hash == null) { // Entered password becomes new password
-    $stmt = $db->prepare('UPDATE users SET password = ? WHERE slug = ?');
-    $stmt->execute(array(password_hash($_POST['pass'], PASSWORD_DEFAULT), $_POST['org']));
+    $token = bin2hex(random_bytes(127)); // Will be used to verify a user is logged in
+    $stmt = $db->prepare('UPDATE users SET password = ?, token = ? WHERE slug = ?');
+    $stmt->execute(array(password_hash($_POST['pass'], PASSWORD_DEFAULT), $token, $_POST['org']));
+  } else {
+    $token = $users['token'];
   }
   if ($hash == null || password_verify($_POST['pass'], $hash)) { // Log in
-    $token = bin2hex(random_bytes(127)); // Will be used to verify a user is logged in
-    $stmt = $db->prepare('UPDATE users SET token = ? WHERE slug = ?');
-    $stmt->execute(array($token, $_POST['org']));
+    if ($token !== $users['token']) { // if $token !== the token in the database (only true if $hash==null)
+      $stmt = $db->prepare('UPDATE users SET token = ? WHERE slug = ?');
+      $stmt->execute(array($token, $_POST['org']));
+    }
     setcookie('token', $token, time()+60*60*24*30, "/{$_POST['org']}/");
     header("Location: https://oberlindashboard.org/{$_POST['org']}/prefs/docs.php");
   }

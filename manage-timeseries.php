@@ -52,7 +52,7 @@ if (isset($_POST['submit'])) {
   }
 }
 if (isset($_POST['refresh'])) {
-  $api_id = $db->query("SELECT api_id FROM users WHERE id = {$user_id}")->fetchColumn();
+  $api_id = $db->query("SELECT api_id FROM orgs WHERE id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id})")->fetchColumn();
   $resolutions = array('live', 'quarterhour', 'hour', 'month');
   for ($i = 0; $i < count($resolutions); $i++) {
     $stmt = $db->prepare('SELECT recorded FROM meter_data
@@ -91,8 +91,13 @@ if (isset($_POST['save-changes'])) {
     ':color3' => $_POST['color3'],
     ':label' => ($_POST['label']==null) ? null : $_POST['label']
   );
-  $stmt = $db->prepare('UPDATE time_series_configs SET dasharr1 = :dasharr1, fill1 = :fill1, dasharr2 = :dasharr2, fill2 = :fill2, dasharr3 = :dasharr3, fill3 = :fill3, start = :start, color1 = :color1, color2 = :color2, color3 = :color3, label = :label)');
+  $stmt = $db->prepare('UPDATE time_series_configs SET dasharr1 = :dasharr1, fill1 = :fill1, dasharr2 = :dasharr2, fill2 = :fill2, dasharr3 = :dasharr3, fill3 = :fill3, start = :start, color1 = :color1, color2 = :color2, color3 = :color3, label = :label');
   $stmt->execute($q);
+}
+
+if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
+  $stmt = $db->prepare('UPDATE buildings SET custom_img = ? WHERE id = ?');
+  $stmt->execute(array($_POST['building-image'], $_POST['building-id']));
 }
 ?>
 <!DOCTYPE html>
@@ -211,10 +216,21 @@ if (isset($_POST['save-changes'])) {
                 echo "<tr>";
                   echo "<td><p id='label-{$row['id']}'>";
                   if ($row['label'] == null) {
-                    echo $db->query("SELECT buildings.name FROM buildings WHERE user_id = {$user_id} AND buildings.id IN (SELECT meters.building_id FROM meters WHERE meters.id = {$row['meter_id']}) LIMIT 1")->fetchColumn() . ' ';
+                    echo $db->query("SELECT buildings.name FROM buildings WHERE org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id}) AND buildings.id IN (SELECT meters.building_id FROM meters WHERE meters.id = {$row['meter_id']}) LIMIT 1")->fetchColumn() . ' ';
                     echo $db->query("SELECT name FROM meters WHERE id = {$row['meter_id']}")->fetchColumn();
                   } else { echo $row['label']; }
-                  echo '</p></td>';
+                  echo '</p>';
+                  $id = $db->query("SELECT id FROM buildings WHERE org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id}) AND custom_img IS NOT NULL AND buildings.id IN (SELECT meters.building_id FROM meters WHERE meters.id = {$row['meter_id']})")->fetchColumn();
+                  if (!empty($id)) {
+                    $rand = uniqid();
+                    echo "<form action='' method='POST' class='form-inline'>
+                          <input type='hidden' name='building-id' value='{$id}'>
+                          <label class='sr-only' for='{$rand}'>Building image URL</label>
+                          <input type='text' class='form-control form-control-sm mb-2 mr-sm-2 mb-sm-0' id='{$rand}' placeholder='Building image URL' name='building-image'>
+                          <button type='submit' class='btn btn-sm btn-primary'>Submit</button>
+                        </form>";
+                  }
+                  echo '</td>';
                   $query_string = timeseries_qs($row['meter_id'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3'], $row['label']);
                   $start_url = "{$_SERVER['HTTP_HOST']}/{$symlink}/time-series/index.php?{$query_string}";
                   $url = timeseriesURL($row['meter_id'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3'], $row['label']);
@@ -233,11 +249,12 @@ if (isset($_POST['save-changes'])) {
                         Include chart in HTML page
                       </label>
                     </div>
-                    <div class='form-check' id='extraoption1{$row['id']}'>
+                    <div class='form-check form-check-inline' id='extraoption1{$row['id']}'>
                       <label class='form-check-label'>
                         <input type='checkbox' class='form-check-input' id='title-{$row['id']}' checked>
                         Include title
                       </label>
+                      <input class='form-control form-control-sm title-font-size' data-timeseries_id='{$row['id']}' id='title_size-{$row['id']}' type='text' placeholder='Font size'>
                     </div>
                     <div class='form-check' id='extraoption2{$row['id']}'>
                       <label class='form-check-label'>
@@ -246,9 +263,9 @@ if (isset($_POST['save-changes'])) {
                       </label>
                     </div>
                   </form>
-                  <p id='displayurl-{$row['id']}' data-querystring='{$query_string}' style='word-wrap: break-word;'>{$start_url}</p>
+                  <p style='word-wrap: break-word;'><span id='displayurl-{$row['id']}' data-querystring='{$query_string}'>{$start_url}</span><span id='title_size_span-{$row['id']}'></span></p>
                   </td>";
-                  echo "<td><button type='button' class='btn btn-primary' data-toggle='modal' data-target='#modal'
+                  echo "<td><p><button type='button' class='btn btn-primary' data-toggle='modal' data-target='#modal'
                     data-dasharr1='{$row['dasharr1']}'
                     data-fill1='{$row['fill1']}'
                     data-color1='{$row['color1']}'
@@ -260,7 +277,7 @@ if (isset($_POST['save-changes'])) {
                     data-color3='{$row['color3']}'
                     data-label='{$row['label']}'
                     data-id='{$row['id']}'
-                    >Edit</button></td>";
+                    >Edit</button></p></td>";
                   echo "<td>
                         <form action='' method='POST'>
                         <input type='hidden' name='id' value='{$row['id']}'>
@@ -308,6 +325,8 @@ if (isset($_POST['save-changes'])) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
     <script>
+    var base_url = '<?php echo $_SERVER['HTTP_HOST'] . "/{$symlink}"; ?>/time-series/';
+    var page = 'index.php?';
     $('.form-check-input').on('change', function() {
       var clicked = $(this).attr('id').split('-');
       var action = clicked[0];
@@ -322,11 +341,10 @@ if (isset($_POST['save-changes'])) {
       } else if (action === 'html') {
         $('#extraoption1' + timeseries_id + ', #extraoption2' + timeseries_id).css('display', '');
       }
-      var base_url = '<?php echo $_SERVER['HTTP_HOST'] . "/{$symlink}"; ?>/time-series/';
       if ($('#html-' + timeseries_id).is(':checked')) {
-        var page = 'index.php?';
+        page = 'index.php?';
       } else {
-        var page = 'chart.php?';
+        page = 'chart.php?';
       }
       var displayurl = $('#displayurl-' + timeseries_id);
       if ($('#prettyurl-' + timeseries_id).is(':checked')) {
@@ -340,24 +358,32 @@ if (isset($_POST['save-changes'])) {
       } else if (titlechecked) {
         var extrabit = '&webpage=title';
       } else {
-        var extrabit = '&webpage=notitle'
+        var extrabit = '&webpage=notitle';
       }
       displayurl.text(base_url + page + qs + extrabit);
     });
 
-    var firstmeter = null;
     $('#modal').on('show.bs.modal', function (event) {
       var button = $(event.relatedTarget);
       $.each(button.data(), function(i, v) {
         if (i !== 'target' && i !== 'toggle') {
           // console.log('"' + i + '":"' + v + '",');
-          if (i === firstmeter) {}
           $('#' + i).val(v);
         }
       });
-      var modal = $(this)
+      // var modal = $(this)
       // modal.find('.modal-title').text('New message to ' + recipient)
       // modal.find('.modal-body input').val(recipient)
+    });
+
+    $('.title-font-size').on('input', function() {
+      var timeseries_id = $(this).data('timeseries_id');
+      var title_size = $(this).val();
+      if (title_size.length > 0) {
+        $('#title_size_span-' + timeseries_id).text('&title_size='+encodeURIComponent(title_size));
+      } else {
+        $('#title_size_span-' + timeseries_id).text('');
+      }
     });
 
     </script>

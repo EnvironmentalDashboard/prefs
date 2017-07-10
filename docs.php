@@ -46,16 +46,10 @@ require 'includes/check-signed-in.php';
             <hr>
 
             <h3>Meters</h3>
-            <p>Rather than querying the BuildingOS API directly, a scheduled task (cron job) on the server periodically fetches new meter data from the API and stores it in a database for quicker access. Data is stored by different lengths and resolutions:</p>
+            <p>Rather than query the BuildingOS API for each page load, ED web apps use data that are stored in a database. Live (i.e. roughly minute) resolution data is stored for 2 hours, quarter-hour for 2 weeks, hour for 2 months, month for 2 years. Data are constantly updated by scripts that run in the background. The scripts can also be run on the <a href="meters">meters</a> page to verify a meters data or relative value calculation.</p>
             <h5>Relative value</h5>
-            <p>In addition to caching raw data, the cron jobs calculate the relative value for each record in the relative_values table so that a meters relative value may be quickly accessed. The calculation of the relative value is where the current value falls in an ordered list of historical data from the current hour. For example, if the ordered list of historical data is <code>62.5, 63, 65, 66, 66.5, 70</code> and the current reading is 64, the relative value would be 2/7 (where the current value falls in the 0-based sorted list divided by the number of items in the list) or 28%.</p>
+            <p>A meters relative value is updated every time new live-resolution data becomes available. The calculation of the relative value is where the current value falls in an ordered list of historical data from the current hour. For example, if the ordered list of historical data is <code>62.5, 63, 65, 66, 66.5, 70</code> and the current reading is 64, the relative value would be 2/7 (where the current value falls in the 0-based sorted list divided by the number of items in the list) or 28%.</p>
             <p>The historical data used in the calculation can be customized by grouping days together. Only data recorded on a day in the same group as the current day is included in the calculation. Furthermore, each group of days can look back a number of data points or a string that will be parsed by <a href="http://php.net/manual/en/function.strtotime.php">PHPs strtotime</a> function. Thus, valid inputs could be a fixed date e.g. "August 12, 2017" or a relative amount of time e.g. "-2 weeks".</p>
-
-            <hr style="margin-top:20px;margin-bottom:20px">
-
-            <h3>Gauges</h3>
-            <h5>HTML vs SVG</h5>
-            <p>There are both HTML and SVG implementations of the gauges available for different contexts. Whereas the HTML (webpage) versions need an <code>iframe</code> to be embedded, the SVG version can be embedded as an image. Additionally, the SVG gauges are much more performant compared to the HTML version. However, the <a href="http://github.hubspot.com/odometer/docs/welcome/">odometer.js</a> plugin does not work with SVGs, meaning the animation in the HTML version does not work in the SVG version.</p>
 
             <hr style="margin-top:20px;margin-bottom:20px">
             

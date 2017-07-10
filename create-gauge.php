@@ -39,7 +39,7 @@ if (isset($_POST['submit'])) {
   $stmt->execute(array($_POST['meter']));
 }
 
-$buildings = $db->query("SELECT * FROM buildings WHERE user_id = {$user_id}");
+$buildings = $db->query("SELECT * FROM buildings WHERE org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id})");
 $buildings = $buildings->fetchAll();
 $num_buildings = count($buildings);
 // var_dump($buildings);

@@ -1,6 +1,6 @@
 <?php
-// error_reporting(-1);
-// ini_set('display_errors', 'On');
+error_reporting(-1);
+ini_set('display_errors', 'On');
 require '../includes/db.php';
 require 'includes/check-signed-in.php';
 function gaugeURL($rv_id, $meter_id, $color, $bg, $height, $width, $font_family, $title, $title2, $border_radius, $rounding, $ver, $units) {
@@ -32,12 +32,12 @@ if (isset($_POST['edit'])) {
     ':title' => $_POST['edit-title'],
     ':title2' => $_POST['edit-title2'],
     ':border_radius' => $_POST['edit-borderradius'],
-    ':rounding' => $_POST['edit-rounding'],
+    ':rounding' => intval($_POST['edit-rounding']),
     ':ver' => $_POST['edit-radio'],
     ':units' => $_POST['edit-units'],
     ':id' => $_POST['gauge-id']
   );
-  $stmt = $db->prepare('UPDATE gauges SET meter_id = :meter_id, color = :color, bg = :bg, height = :height, width = :width, font_family = :font_family, title = :title, title2 = :title2, border_radius = :border_radius, rounding = :rounding, ver = :ver, units = :units, start = :start WHERE id = :id');
+  $stmt = $db->prepare('UPDATE gauges SET meter_id = :meter_id, color = :color, bg = :bg, height = :height, width = :width, font_family = :font_family, title = :title, title2 = :title2, border_radius = :border_radius, rounding = :rounding, ver = :ver, units = :units WHERE id = :id');
   $stmt->execute($q);
   $stmt = $db->prepare('UPDATE meters SET gauges_using = gauges_using + 1 WHERE id = ?');
   $stmt->execute(array($_POST['edit-meter']));
@@ -53,7 +53,7 @@ if (isset($_POST['delete'])) {
 }
 
 $dropdown_html = '';
-$buildings = $db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY name ASC");
+$buildings = $db->query("SELECT * FROM buildings WHERE org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id}) ORDER BY name ASC");
 foreach ($buildings->fetchAll() as $building) {
   $dropdown_html .= "<optgroup label='{$building['name']}'>";
   $stmt = $db->prepare('SELECT id, name FROM meters WHERE building_id = ?');
@@ -281,12 +281,13 @@ foreach ($buildings->fetchAll() as $building) {
                 </a>
               </li>
               <?php }
+              $urlencoded = (isset($_GET['search'])) ? urlencode($_GET['search']) : '';
               for ($i = 1; $i <= $final_page; $i++) {
                 if ($page + 1 === $i) {
-                  echo '<li class="page-item active"><a class="page-link" href="?sort='.$_GET['sort'].'&page=' . $i . '&search=' .urlencode($_GET['search']). '">' . $i . '</a></li>';
+                  echo '<li class="page-item active"><a class="page-link" href="?sort='.$_GET['sort'].'&page=' . $i . '&search=' .$urlencoded. '">' . $i . '</a></li>';
                 }
                 else {
-                  echo '<li class="page-item"><a class="page-link" href="?sort='.$_GET['sort'].'&page=' . $i . '&search=' .urlencode($_GET['search']). '">' . $i . '</a></li>';
+                  echo '<li class="page-item"><a class="page-link" href="?sort='.$_GET['sort'].'&page=' . $i . '&search=' .$urlencoded. '">' . $i . '</a></li>';
                 }
               }
               if ($page + 1 < $final_page) { ?>

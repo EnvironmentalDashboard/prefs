@@ -20,7 +20,7 @@ if (isset($_POST['submit'])) {
     ':color1' => $_POST['color1'],
     ':color2' => $_POST['color2'],
     ':color3' => $_POST['color3'],
-    ':label' => ($_POST['title']==null) ? null : $_POST['title']
+    ':label' => (!isset($_POST['title'])) ? null : $_POST['title']
   );
   $stmt = $db->prepare('INSERT INTO time_series_configs (user_id, meter_id, meter_id2, dasharr1, fill1, dasharr2, fill2, dasharr3, fill3, start, ticks, color1, color2, color3, label)
     VALUES (:user_id, :meter_id, :meter_id2, :dasharr1, :fill1, :dasharr2, :fill2, :dasharr3, :fill3, :start, :ticks, :color1, :color2, :color3, :label)');
@@ -37,7 +37,7 @@ if (isset($_POST['submit'])) {
 }
 
 $dropdown_html = '';
-foreach ($db->query("SELECT * FROM buildings WHERE user_id = {$user_id} ORDER BY name ASC") as $building) {
+foreach ($db->query("SELECT * FROM buildings WHERE org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id}) ORDER BY name ASC") as $building) {
   $stmt = $db->prepare('SELECT id, name FROM meters WHERE building_id = ? ORDER BY name');
   $stmt->execute(array($building['id']));
   $once = true;

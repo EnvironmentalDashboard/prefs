@@ -2,6 +2,8 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
+require '../includes/class.BuildingOS.php';
+require '../includes/class.Meter.php';
 require 'includes/check-signed-in.php';
 
 if (isset($_POST['submit'])) {
@@ -25,6 +27,14 @@ if (isset($_POST['submit'])) {
   $stmt = $db->prepare('INSERT INTO time_series_configs (user_id, meter_id, meter_id2, dasharr1, fill1, dasharr2, fill2, dasharr3, fill3, start, ticks, color1, color2, color3, label)
     VALUES (:user_id, :meter_id, :meter_id2, :dasharr1, :fill1, :dasharr2, :fill2, :dasharr3, :fill3, :start, :ticks, :color1, :color2, :color3, :label)');
   $stmt->execute($q);
+  /*$api_id = $db->query("SELECT id FROM api WHERE user_id = {$user_id}")->fetchColumn();
+  $meterClass = new Meter($db);
+  foreach ($db->query('SELECT id, bos_uuid, url FROM meters WHERE ') as $meter) {
+    $bos = new BuildingOS($db, $api_id);
+    foreach ($resolutions as $res) {
+      $bos->updateMeter($meter['id'], $meter['bos_uuid'], $meter_url, $res, $meterClass);
+    }
+  }*/
   if ($_POST['meter_id'] === $_POST['meter_id2']) {
     $stmt = $db->prepare('UPDATE meters SET timeseries_using = timeseries_using + 1 WHERE id = ?');
     $stmt->execute(array($_POST['meter_id']));

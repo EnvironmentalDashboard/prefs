@@ -294,7 +294,7 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
             <ul class="pagination pagination-lg" style="display: inline-flex">
               <?php if ($page > 0) { ?>
               <li class="page-item">
-                <a class="page-link" href="?sort=<?php echo $_GET['sort'] ?>&page=<?php echo $page ?>" aria-label="Previous">
+                <a class="page-link" href="?sort=<?php echo (isset($_GET['sort'])) ? $_GET['sort'] : ''; ?>&page=<?php echo $page ?>" aria-label="Previous">
                   <span aria-hidden="true">&laquo;</span>
                   <span class="sr-only">Previous</span>
                 </a>
@@ -310,7 +310,7 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
               }
               if ($page + 1 < $final_page) { ?>
               <li class="page-item">
-                <a class="page-link" href="?sort=<?php echo $_GET['sort'] ?>&page=<?php echo $page + 2 ?>" aria-label="Next">
+                <a class="page-link" href="?sort=<?php echo (isset($_GET['sort'])) ? $_GET['sort'] : ''; ?>&page=<?php echo $page + 2 ?>" aria-label="Next">
                   <span aria-hidden="true">&raquo;</span>
                   <span class="sr-only">Next</span>
                 </a>

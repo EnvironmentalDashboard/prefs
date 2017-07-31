@@ -3,6 +3,10 @@ error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
 require 'includes/check-signed-in.php';
+if (!empty($_POST['loc'])) {
+  $stmt = $db->prepare('INSERT INTO calendar_screens (name) VALUES (?)');
+  $stmt->execute(array($_POST['loc']));
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -30,7 +34,11 @@ require 'includes/check-signed-in.php';
         <div class="row">
           <div class="col-sm-12">
             <h1>Screen locations</h1>
-            <hr>
+            <form class="form-inline" method="POST" action="" style="margin-bottom: 20px">
+              <label class="sr-only" for="location-name">Location name</label>
+              <input type="text" class="form-control mb-2 mr-sm-2 mb-sm-0" name="loc" id="location-name" placeholder="Location name">
+              <button type="submit" class="btn btn-primary">Add</button>
+            </form>
             <table class="table table-sm">
               <thead>
                 <tr>

@@ -8,21 +8,25 @@ if (isset($_POST['delete-account'])) {
   $stmt = $db->prepare('DELETE FROM users WHERE id = ?');
   $stmt->execute(array($user_id));
   // all the orgs that use the api record created by $user_id
-  foreach ($db->query("SELECT id, url FROM orgs WHERE api_id IN (SELECT id FROM api WHERE user_id = ?)") as $org) {
+  foreach ($db->query("SELECT id, url FROM orgs WHERE api_id IN (SELECT id FROM api WHERE user_id = {$user_id})") as $org) {
+    // the user_ids (other than the current $user_id) that are associated with the org that has api credentials of an account being deleted
     $other_users = $db->query("SELECT DISTINCT user_id FROM users_orgs_map WHERE org_id = {$org['id']} AND user_id != {$user_id}")->fetchAll();
     // if the org is used by other dashboard accounts
     if (count($other_users) > 0) { // org needs a new api_id
-      foreach ($other_users as $row) {
-        $bos = new BuildingOS($db, $db->query("SELECT org_id FROM users_orgs_map WHERE user_id = {$row['user_id']} LIMIT 1")->fetchColumn());
-        if (in_array($org['url'], $bos->getOrganizations())) {
+      foreach ($other_users as $row) { // these users are also associated with this organization, so theyre api credentials should be able to retrieve data
+        $bos = new BuildingOS($db, $db->query("SELECT id FROM api WHERE user_id = {$row['user_id']} LIMIT 1")->fetchColumn());
+        if (in_array($org['url'], $bos->getOrganizations())) { // if the org is in the list returned from api
           $stmt = $db->prepare('UPDATE orgs SET api_id = ? WHERE id = ?');
           $stmt->execute(array($db->query("SELECT id FROM api WHERE user_id = {$row['user_id']} LIMIT 1")->fetchColumn(), $org['id']));
+          break;
         }
       }
     } else { // delete org, and all the buildings/meters belonging to it
       $stmt = $db->prepare('DELETE FROM orgs WHERE id = ?');
       $stmt->execute(array($org['id']));
       $stmt = $db->prepare('DELETE FROM buildings WHERE org_id = ?');
+      $stmt->execute(array($org['id']));
+      $stmt = $db->prepare('DELETE FROM meter_data WHERE meter_id IN (SELECT id FROM meters WHERE org_id = ?)');
       $stmt->execute(array($org['id']));
       $stmt = $db->prepare('DELETE FROM meters WHERE org_id = ?');
       $stmt->execute(array($org['id']));
@@ -44,7 +48,7 @@ if (isset($_POST['delete-account'])) {
   $stmt->execute(array($user_id));
   $stmt = $db->prepare('DELETE FROM timing WHERE user_id = ?');
   $stmt->execute(array($user_id));
-  shell_exec('rm '.escapeshellarg("/var/www/html/{$symlink}"));
+  shell_exec('sudo rm '.escapeshellarg("/var/www/html/{$symlink}"));
   header('Location: /');
   exit();
 }
@@ -74,7 +78,7 @@ if (isset($_POST['apps'])) {
     $stmt->execute(array($user_id));
   }
 }
-$bos = new BuildingOS($db, $db->query("SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id} LIMIT 1")->fetchColumn());
+$bos = new BuildingOS($db, $db->query("SELECT id FROM api WHERE user_id = {$user_id} LIMIT 1")->fetchColumn());
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -157,7 +161,7 @@ $bos = new BuildingOS($db, $db->query("SELECT org_id FROM users_orgs_map WHERE u
           <p>Deleting your account delete all the organizations, buildings, and meters in our database not associated with another dashboard account.</p>
           <p>
             <form action="" method="POST" id="delete-account-form">
-              <input type="submit" value="Delete account" name="delete-account" class="btn btn-danger">
+              <input type="submit" value="Delete account" name="delete-account" id="delete-account-btn" class="btn btn-danger">
             </form>
           </p>
         </div>
@@ -167,10 +171,9 @@ $bos = new BuildingOS($db, $db->query("SELECT org_id FROM users_orgs_map WHERE u
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
     <script>
-      $('#delete-account-form').on('submit', function(e) {
-        e.preventDefault();
-        if (confirm('Are you sure you want to delete your account?')) {
-          $(this).submit();
+      $('#delete-account-btn').on('click', function(e) {
+        if (!confirm('Are you sure you want to delete your account?')) {
+          e.preventDefault();
         }
       })
     </script>

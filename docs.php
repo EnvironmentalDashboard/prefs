@@ -49,7 +49,7 @@ require 'includes/check-signed-in.php';
             <p>Rather than query the BuildingOS API for each page load, ED web apps use data that are stored in a database. Live (i.e. roughly minute) resolution data is stored for 2 hours, quarter-hour for 2 weeks, hour for 2 months, month for 2 years. Data are constantly updated by scripts that run in the background. The scripts can also be run on the <a href="meters">meters</a> page to verify a meters data or relative value calculation.</p>
             <h5>Relative value</h5>
             <p>A meters relative value is updated every time new live-resolution data becomes available. The calculation of the relative value is where the current value falls in an ordered list of historical data from the current hour. For example, if the ordered list of historical data is <code>62.5, 63, 65, 66, 66.5, 70</code> and the current reading is 64, the relative value would be 2/7 (where the current value falls in the 0-based sorted list divided by the number of items in the list) or 28%.</p>
-            <p>The historical data used in the calculation can be customized by grouping days together. Only data recorded on a day in the same group as the current day is included in the calculation. Furthermore, each group of days can look back a number of data points or a string that will be parsed by <a href="http://php.net/manual/en/function.strtotime.php">PHPs strtotime</a> function. Thus, valid inputs could be a fixed date e.g. "August 12, 2017" or a relative amount of time e.g. "-2 weeks".</p>
+            <p>The historical data used in the calculation can be customized by grouping days together. Only data recorded on a day in the same group as the current day is included in the calculation. Furthermore, each group of days can look back a number of data points (hour res is used, so 1 data point corresponds to 1 hour) or a string that will be parsed by <a href="http://php.net/manual/en/function.strtotime.php">PHPs strtotime</a> function. Thus, valid inputs could be a fixed date e.g. "August 12, 2017" or a relative amount of time e.g. "-2 weeks".</p>
 
             <hr style="margin-top:20px;margin-bottom:20px">
             
@@ -81,17 +81,6 @@ require 'includes/check-signed-in.php';
               <li>start: Where to start the Y-axis from.</li>
               <li>ticks: If present and set to "on", will draw baseload and peak ticks.</li>
             </ul>
-
-            <hr style="margin-top:20px;margin-bottom:20px">
-
-            <h3>Other Notes</h3>
-            <h5>Refreshing buildings</h5>
-            <p>If buildings or meters are added to BuildingOS the database has to be updated to reflect the changes by clicking the button below.
-            <form action="" method="POST" class="form-inline">
-              <input type="submit" name="refreshdb" value="Update database" class="btn btn-secondary btn-sm">
-            </form>
-            </p>
-
             <div style="height:50px;clear:both"></div>
 
           </div>

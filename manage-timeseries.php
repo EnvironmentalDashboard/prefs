@@ -198,9 +198,8 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
           <table class="table table-responsive table-sm">
             <thead>
               <tr>
-                <th>Title</th>
                 <th>Raw chart</th>
-                <th style='max-width:400px'>URL</th>
+                <th>URL</th>
                 <th>&nbsp;</th>
                 <th>&nbsp;</th>
               </tr>
@@ -213,8 +212,12 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
               $offset = $limit * $page;
               $final_page = ceil($count / $limit);
               foreach ($db->query("SELECT * FROM time_series_configs WHERE user_id = {$user_id} ORDER BY id ASC LIMIT {$offset}, {$limit}") as $row) {
-                echo "<tr>";
-                  echo "<td><p id='label-{$row['id']}'>";
+                echo "<tr><td>";
+                  $query_string = timeseries_qs($row['meter_id'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3'], $row['label']);
+                  $start_url = "{$_SERVER['HTTP_HOST']}/{$symlink}/time-series/index.php?{$query_string}";
+                  $url = timeseriesURL($row['meter_id'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3'], $row['label']);
+
+                  echo "<p id='label-{$row['id']}'>";
                   if ($row['label'] == null) {
                     echo $db->query("SELECT buildings.name FROM buildings WHERE org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id}) AND buildings.id IN (SELECT meters.building_id FROM meters WHERE meters.id = {$row['meter_id']}) LIMIT 1")->fetchColumn() . ' ';
                     echo $db->query("SELECT name FROM meters WHERE id = {$row['meter_id']}")->fetchColumn();
@@ -230,12 +233,9 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
                           <button type='submit' class='btn btn-sm btn-primary'>Submit</button>
                         </form>";
                   }
-                  echo '</td>';
-                  $query_string = timeseries_qs($row['meter_id'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3'], $row['label']);
-                  $start_url = "{$_SERVER['HTTP_HOST']}/{$symlink}/time-series/index.php?{$query_string}";
-                  $url = timeseriesURL($row['meter_id'], $row['dasharr1'], $row['fill1'], $row['meter_id2'], $row['dasharr2'], $row['fill2'], $row['dasharr3'], $row['fill3'], $row['start'], $row['ticks'], $row['color1'], $row['color2'], $row['color3'], $row['label']);
-                  echo "<td><object style='max-width:400px' type='image/svg+xml' data='{$url}'></object></td>\n";
-                  echo "<td style='max-width:400px'>
+
+                  echo "<object style='max-width:400px' type='image/svg+xml' data='{$url}'></object></td>\n";
+                  echo "<td>
                   <form>
                     <div class='form-check'>
                       <label class='form-check-label'>
@@ -263,7 +263,7 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
                       </label>
                     </div>
                   </form>
-                  <p style='word-wrap: break-word;'><span id='displayurl-{$row['id']}' data-querystring='{$query_string}'>{$start_url}</span><span id='title_size_span-{$row['id']}'></span></p>
+                  <p style='word-wrap: break-word;max-width:300px'><span id='displayurl-{$row['id']}' data-querystring='{$query_string}'>{$start_url}</span><span id='title_size_span-{$row['id']}'></span></p>
                   </td>";
                   echo "<td><p><button type='button' class='btn btn-primary' data-toggle='modal' data-target='#modal'
                     data-dasharr1='{$row['dasharr1']}'

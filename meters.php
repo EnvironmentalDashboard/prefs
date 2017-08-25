@@ -140,7 +140,7 @@ function name_that_grouping($grouping) {
         <div class="col-sm-8">
           <h1>Meters</h1>
           <p>Clicking a relative value configuration will recalculate and display the relative value and update all identical configurations. Updating the database with the &quot;Sync data&quot; button will request all data from the BuildingOS API recorded since the last recording in the database. Deleting data for a meter can be used to view the result of a large API request.</p>
-          <p>On average, the last attempt to update a meter was made <?php echo $db->query('SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE (gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\') AND org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = '.intval($user_id).')')->fetchColumn(); ?> minutes ago.</p>
+          <p>On average, the last attempt to update a meter was made <?php echo $db->query('SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE source = \'buildingos\' AND ((gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\' AND meter_uuid != \'\'))')->fetchColumn(); ?> minutes ago.</p>
         </div>
         <div class="col-sm-4">
           <form action="" method="GET" id='sortbyform'>

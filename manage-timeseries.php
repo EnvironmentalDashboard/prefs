@@ -194,8 +194,8 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
       </div>
       <div style="clear:both;height:20px"></div>
       <div class="row">
-        <div class="col-xs-12">
-          <table class="table table-responsive table-sm">
+        <div class="col-xs-12" style="width: 100%">
+          <table class="table table-sm table-responsive">
             <thead>
               <tr>
                 <th>Raw chart</th>
@@ -291,7 +291,7 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
             </tbody>
           </table>
           <nav aria-label="Page navigation" class="text-center">
-            <ul class="pagination pagination-lg" style="display: inline-flex">
+            <ul class="pagination justify-content-center">
               <?php if ($page > 0) { ?>
               <li class="page-item">
                 <a class="page-link" href="?sort=<?php echo (isset($_GET['sort'])) ? $_GET['sort'] : ''; ?>&page=<?php echo $page ?>" aria-label="Previous">

@@ -23,14 +23,6 @@ function time_ago($last_updated) {
     return 'Updated over an hour ago';
   }
 }
-function name_that_grouping($grouping) {
-  $grouping = json_decode($grouping, true);
-  if ($grouping[0]['days'] == array(2,3,4,5,6) && $grouping[1]['days'] == array(1,7) ||
-      $grouping[1]['days'] == array(2,3,4,5,6) && $grouping[0]['days'] == array(1,7)) {
-    return 'Weekdays vs. weekends';
-  }
-  return 'Custom grouping';
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -55,7 +47,7 @@ function name_that_grouping($grouping) {
       <div class="row">
         <div class="col-sm-8">
           <h1>Meters</h1>
-          <p>On average, the last attempt to update a meter was made <?php echo $db->query("SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE source = 'buildingos' AND ((gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = 'orb_server' AND meter_uuid != ''))")->fetchColumn(); ?> minutes ago.</p>
+          <!-- <p>On average, the last attempt to update a meter was made <?php //echo $db->query("SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE source = 'buildingos' AND ((gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = 'orb_server' AND meter_uuid != ''))")->fetchColumn(); ?> minutes ago.</p> -->
         </div>
         <div class="col-sm-4">
           <form action="" method="GET" id='sortbyform'>
@@ -103,9 +95,7 @@ function name_that_grouping($grouping) {
                 <th>Meter&nbsp;name</th>
                 <?php if (!isset($_GET['sortby']) || $_GET['sortby'] !== 'meters_collected') { ?>
                 <th>Last update attempt</th>
-                <th>Last recorded reading</th>
                 <?php } ?>
-                <th>Relative value configuration</th>
                 <th>Gauges</th>
                 <th>Time&nbsp;series</th>
                 <th>Orb</th>
@@ -130,31 +120,7 @@ function name_that_grouping($grouping) {
                 echo "<tr class='{$tr_class}'>";
                 echo "<td>{$meter['bos_uuid']}</td>";
                 echo "<td>{$meter['name']}</td>";
-                if (!isset($_GET['sortby']) || $_GET['sortby'] !== 'meters_collected') {
-                  echo "<td>".date('F j, Y, g:i a', $meter['live_last_updated'])."</td>";
-                  $last_recorded_reading = $db->query("SELECT recorded FROM meter_data WHERE meter_id = {$meter['id']} AND resolution = 'live' ORDER BY recorded DESC LIMIT 1")->fetchColumn();
-                  if ($last_recorded_reading == 0) {
-                    echo "<td>Never updated</td>";
-                  } else {
-                    echo "<td>".date('F j, Y, g:i a', $last_recorded_reading)."</td>";
-                  }
-                }
-                $stmt = $db->prepare('SELECT grouping, last_updated FROM relative_values WHERE meter_uuid = ?');
-                $stmt->execute(array($meter['bos_uuid']));
-                $relative_values = $stmt->fetchAll();
-                $count = count($relative_values);
-                if ($count === 0) {
-                  echo "<td>-</td>";
-                } else {
-                  echo "<td>";
-                  $tmp = 0;
-                  foreach ($relative_values as $rv) {
-                    echo name_that_grouping($rv['grouping']);
-                    echo ' ('.time_ago($rv['last_updated']).')';
-                    echo (++$tmp == $count) ? "\n" : ", \n";
-                  }
-                  echo "</td>";
-                }
+                echo "<td>".date('F j, Y, g:i a', $meter['live_last_updated'])."</td>";
                 echo $meter['gauges_using'] > 0 ? "<td>{$meter['gauges_using']}</td>" : "<td class='text-muted'>-</td>";
                 echo $meter['timeseries_using'] > 0 ? "<td>{$meter['timeseries_using']}</td>" : "<td class='text-muted'>-</td>";
                 if ($meter['for_orb'] > 0) {

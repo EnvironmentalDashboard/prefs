@@ -4,7 +4,7 @@ ini_set('display_errors', 'On');
 require '../includes/db.php';
 require 'includes/check-signed-in.php';
 date_default_timezone_set("America/New_York");
-if (!empty($_POST)) {
+if (isset($_POST['review-events'])) {
   $handle = fopen('/var/www/html/oberlin/calendar/email_buffer.txt', 'a');
   foreach ($_POST as $key => $value) {
     $approved = ($value === 'approve') ? 1 : 0;
@@ -27,6 +27,34 @@ if (!empty($_POST)) {
     }
   }
   fclose($handle);
+}
+if (isset($_POST['edit-event'])) {
+  $date = strtotime($_POST['date']);
+  $date2 = strtotime($_POST['date2']);
+  if (!$date) {
+    $msg = "Error parsing date \"{$_POST['date']}\"";
+  } elseif (!$date2) {
+    $msg = "Error parsing date \"{$_POST['date2']}\"";
+  } elseif (empty($_POST['event'])) {
+    $msg = 'You forgot to fill in a field';
+  }
+  else if (file_exists($_FILES['edit-image']['tmp_name']) && is_uploaded_file($_FILES['edit-image']['tmp_name'])) {
+    $allowedTypes = array(IMAGETYPE_PNG, IMAGETYPE_JPEG, IMAGETYPE_GIF);
+      $detectedType = exif_imagetype($_FILES['edit-image']['tmp_name']);
+      if (in_array($detectedType, $allowedTypes)) {
+        $repeat_end = (isset($_POST['repeat_end']) || strtotime($_POST['repeat_end']) === false) ? 0 : strtotime($_POST['repeat_end']);
+        $fp = fopen($_FILES['edit-image']['tmp_name'], 'rb');
+      $stmt = $db->prepare('UPDATE calendar SET event = ?, start = ?, `end` = ?, description = ?, loc_id = ?, screen_ids = ?, repeat_end = ?, img = ? WHERE id = ?');
+      $stmt->execute(array($_POST['event'], $date, $date2, $_POST['description'], $_POST['loc'], implode(',', $_POST['screen_loc']), $repeat_end, $fp, $_POST['id']));
+      $msg = 'Event successfully updated';
+      }
+  }
+  else {
+    $repeat_end = (isset($_POST['repeat_end']) || strtotime($_POST['repeat_end']) === false) ? 0 : strtotime($_POST['repeat_end']);
+    $stmt = $db->prepare('UPDATE calendar SET event = ?, start = ?, `end` = ?, description = ?, loc_id = ?, screen_ids = ?, repeat_end = ? WHERE id = ?');
+    $stmt->execute(array($_POST['event'], $date, $date2, $_POST['description'], $_POST['loc'], implode(',', $_POST['screen_loc']), $repeat_end, $_POST['id']));
+    $msg = 'Event successfully updated';
+  }
 }
 function convert_to_day($d) {
   switch ($d) {
@@ -66,7 +94,8 @@ function convert_to_day($d) {
     <div class="modal fade" id="edit-modal" tabindex="-1" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
       <div class="modal-dialog" role="document">
         <div class="modal-content">
-          <form action="includes/edit-event.php" method="POST" id="edit-event-form" enctype="multipart/form-data">
+          <form action="" method="POST" id="edit-event-form" enctype="multipart/form-data">
+            <input type="hidden" name="edit-event" value="true">
             <div class="modal-header">
               <h5 class="modal-title" id="modal-title">Edit event</h5>
               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -160,7 +189,7 @@ function convert_to_day($d) {
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-              <button type="button" id="save-changes" class="btn btn-primary">Save changes</button>
+              <button type="submit" id="save-changes" class="btn btn-primary">Save changes</button>
             </div>
           </form>
         </div>
@@ -176,9 +205,13 @@ function convert_to_day($d) {
         </div>
       </div>
       <div style="height:20px;clear:both"></div>
+      <?php if (isset($msg)) {
+        echo "<p>{$msg}</p>";
+      } ?>
       <div class="row">
         <div class="col-xs-12">
           <form action="" method="POST">
+            <input type="hidden" name="review-events" value="true">
             <?php
             $i = 0;
             foreach ($db->query('SELECT id, event, start, `end`, description, loc_id, screen_ids, repeat_on, repeat_end FROM calendar WHERE approved IS NULL ORDER BY id ASC') as $event) {
@@ -280,21 +313,6 @@ function convert_to_day($d) {
         $.each($(this).data('screen_ids').split(','), function(k, v) { // check all boxes that are saved
           $('#screen' + v).attr('checked','checked');
         });
-      });
-      $('#save-changes').on('click', function() {
-        var form = $('#edit-event-form');
-        $.ajax( {
-          type: "POST",
-          url: form.attr( 'action' ),
-          data: form.serialize(),
-          contentType: false,
-          processData: false,
-          success: function( response ) {
-            console.log( response );
-            $('#' + reload_iframe).attr('src', $('#' + reload_iframe).attr('src'));
-            $('#edit-modal').modal('hide');
-          }
-        } );
       });
     </script>
   </body>

@@ -22,6 +22,7 @@
     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Calendar</a>
     <div class="dropdown-menu">
       <a class="dropdown-item <?php echo ($fn === 'review-events') ? 'active' : ''; ?>" href="review-events.php">Review events</a>
+      <a class="dropdown-item <?php echo ($fn === 'calendar-events') ? 'active' : ''; ?>" href="calendar-events.php">Archived events</a>
       <a class="dropdown-item <?php echo ($fn === 'calendar-locations') ? 'active' : ''; ?>" href="calendar-locations.php">Calendar locations</a>
       <a class="dropdown-item <?php echo ($fn === 'screen-locations') ? 'active' : ''; ?>" href="screen-locations.php">Screen locations</a>
       <div class="dropdown-divider"></div>

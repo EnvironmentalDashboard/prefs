@@ -104,11 +104,11 @@ function time_ago($last_updated) {
             <tbody>
               <?php
               if (isset($_GET['sortby']) && $_GET['sortby'] === 'ignored_meters') {
-                $sql = 'AND (gauges_using = 0 AND for_orb = 0 AND timeseries_using = 0) ';
+                $sql = 'AND ((gauges_using = 0 AND for_orb = 0 AND timeseries_using = 0) AND (bos_uuid NOT IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\'))) ';
               } elseif (isset($_GET['sortby']) && $_GET['sortby'] === 'all') {
                 $sql = '';
               } else {
-                $sql = 'AND (gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\') ';
+                $sql = 'AND ((gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\')) ';
               }
               foreach ($db->query("SELECT id, org_id, bos_uuid, name, url, current, live_last_updated, gauges_using, timeseries_using, for_orb, orb_server FROM meters WHERE building_id = {$building['id']} {$sql}ORDER BY name ASC") as $meter) {
                 $tr_class = '';

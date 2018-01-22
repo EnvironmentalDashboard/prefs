@@ -21,6 +21,7 @@ function timeseriesURL($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fil
     'color3' => $color3,
     'label' => $label
   ));
+  // return "../time-series/chart.php?" . $q . '&test';
   return "../time-series/chart.php?" . $q;
 }
 function timeseries_qs($meter_id, $dasharr1, $fill1, $meter_id2, $dasharr2, $fill2, $dasharr3, $fill3, $start, $ticks, $color1, $color2, $color3, $label) {
@@ -61,7 +62,7 @@ if (isset($_POST['refresh'])) {
     $stmt->execute(array($_POST['meter_id'], $resolutions[$i]));
     $amount = $stmt->fetchColumn();
     // http://stackoverflow.com/a/3819422/2624391
-    exec('bash -c "exec nohup setsid php /var/www/html/oberlin/scripts/update-meter.php --api_id=\''.$api_id.
+    exec('bash -c "exec nohup setsid php /var/www/repos/scripts/update-meter.php --api_id=\''.$api_id.
       '\' --meter_id='.escapeshellarg($_POST['meter_id']).
       ' --res=\''.$resolutions[$i].'\' --amount=\''.$amount.'\' > /dev/null 2>&1 &"');
     if ($_POST['meter_id'] !== $_POST['meter_id2']) {
@@ -70,7 +71,7 @@ if (isset($_POST['refresh'])) {
       ORDER BY recorded DESC LIMIT 1');
       $stmt->execute(array($_POST['meter_id2'], $resolutions[$i]));
       $amount = $stmt->fetchColumn();
-      exec('bash -c "exec nohup setsid php /var/www/html/oberlin/scripts/update-meter.php --api_id=\''.$api_id.
+      exec('bash -c "exec nohup setsid php /var/www/repos/scripts/update-meter.php --api_id=\''.$api_id.
       '\' --meter_id='.escapeshellarg($_POST['meter_id2']).
       ' --res=\''.$resolutions[$i].'\' --amount=\''.$amount.'\' > /dev/null 2>&1 &"');
     }
@@ -208,7 +209,7 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
               <?php
               $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
               $count = $db->query("SELECT COUNT(*) FROM time_series_configs WHERE user_id = {$user_id}")->fetchColumn();
-              $limit = 3;
+              $limit = 5;
               $offset = $limit * $page;
               $final_page = ceil($count / $limit);
               foreach ($db->query("SELECT * FROM time_series_configs WHERE user_id = {$user_id} ORDER BY id ASC LIMIT {$offset}, {$limit}") as $row) {
@@ -260,6 +261,12 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
                       <label class='form-check-label'>
                         <input type='checkbox' class='form-check-input' id='img-{$row['id']}' checked>
                         Include building image
+                      </label>
+                    </div>
+                    <div class='form-check'>
+                      <label class='form-check-label'>
+                        <input type='checkbox' class='form-check-input' id='debug-{$row['id']}'>
+                        Include debug lines
                       </label>
                     </div>
                   </form>
@@ -353,6 +360,7 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
         var qs = displayurl.data('querystring');
       }
       var titlechecked = $('#title-' + timeseries_id).is(':checked');
+      var debugchecked = $('#debug-' + timeseries_id).is(':checked');
       if (titlechecked && $('#img-' + timeseries_id).is(':checked')) {
         var extrabit = '';
       } else if (titlechecked) {
@@ -360,7 +368,12 @@ if (isset($_POST['building-id']) && isset($_POST['building-image'])) {
       } else {
         var extrabit = '&webpage=notitle';
       }
-      displayurl.text(base_url + page + qs + extrabit);
+      if (debugchecked) {
+        var debug = '&test';
+      } else {
+        var debug = '';
+      }
+      displayurl.text(base_url + page + qs + extrabit + debug);
     });
 
     $('#modal').on('show.bs.modal', function (event) {

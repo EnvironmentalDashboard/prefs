@@ -3,27 +3,6 @@ error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
 require 'includes/check-signed-in.php';
-$saved_emails = '/var/www/html/oberlin/prefs/emails.txt';
-// if (isset($_POST['refreshdb'])) {
-//   require '../includes/class.BuildingOS.php';
-//   $bos = new BuildingOS($db);
-//   $buildings = $bos->getBuildings();
-//   $db->exec("TRUNCATE TABLE buildings");
-//   $db->exec("TRUNCATE TABLE meters");
-//   $db->exec("TRUNCATE TABLE meter_data");
-//   foreach ($buildings as $building) {
-//     $stmt = $db->prepare("INSERT INTO buildings (name) VALUES (?)");
-//     $stmt->execute(array($building['name']));
-//     $id = $db->lastInsertId();
-//     foreach ($building['meters'] as $meter) {
-//       $stmt = $db->prepare("INSERT INTO meters (building_id, source, name, url) VALUES (?, ?, ?, ?)");
-//       $stmt->execute(array($id, 'buildingos', $meter['name'], $meter['url']));
-//     }
-//   }
-// }
-if (isset($_POST['emails'])) {
-  file_put_contents($saved_emails, $_POST['emails']);
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -65,15 +44,6 @@ if (isset($_POST['emails'])) {
             <p>The messages shown on Citywide Dashboard depend on the relative value of the gauge selected from the dropdown at the top of each page. Messages have five probability "bins" that each represent a quintile where the first bin is the first quintile. The bin that represents the quinile the relative value currently falls in is used as the "priority" a message has. A lower priority means the message will usually be shown after messages with a higher priority, but there is a degree of randomness.</p>
             <h5><a href="landscape-components.php">Landscape components</a></h5>
             <p>New landscape components can be created for Citywide Dashboard through the form on the left. X and Y coordinates are used to position components and have a maximium value of 1584,893 (the height and width of Citywide Dashboard).</p>
-
-            <hr style="margin-top:20px;margin-bottom:20px">
-
-            <h3>Calendar</h3>
-            <form action="" method="POST" style="margin-bottom: 70px">
-              <label for="emails">These emails will be notified when events are submitted for review (one per line)</label>
-              <textarea class="form-control" id="emails" name="emails" rows="3" style="width:100%;display: block;margin-bottom: 15px"><?php include $saved_emails;//echo (file_exists($saved_emails)) ? readfile($saved_emails) : ''; ?></textarea>
-              <button type="submit" class="btn btn-primary" style="float: right;">Update</button>
-            </form>
 
             <hr style="margin-top:20px;margin-bottom:20px">
 

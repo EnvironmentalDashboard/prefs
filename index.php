@@ -3,8 +3,15 @@ require '../includes/db.php';
 $symlink = explode('/', $_SERVER['REQUEST_URI'])[1];
 $stmt = $db->prepare('SELECT token FROM users WHERE slug = ?');
 $stmt->execute(array($symlink));
-if (isset($_COOKIE['token']) && $stmt->fetchColumn() !== $_COOKIE['token']) {
-  header("Location: https://oberlindashboard.org/{$symlink}/prefs/docs");
+if ($stmt->rowCount() === 0) { // default to oberlin
+  $user_token = $db->query('SELECT token FROM users WHERE slug = \'oberlin\'')->fetchColumn();
+  $symlink = '/';
+} else {
+  $user_token = $stmt->fetchColumn();
+  $symlink = "/{$symlink}/";
+}
+if (isset($_COOKIE['token']) && $user_token === $_COOKIE['token']) {
+  header("Location: https://environmentaldashboard.org{$symlink}prefs/docs");
 }
 if (isset($_POST['pass']) && isset($_POST['org'])) {
   $stmt = $db->prepare('SELECT password, token FROM users WHERE slug = ?');
@@ -23,8 +30,13 @@ if (isset($_POST['pass']) && isset($_POST['org'])) {
       $stmt = $db->prepare('UPDATE users SET token = ? WHERE slug = ?');
       $stmt->execute(array($token, $_POST['org']));
     }
-    setcookie('token', $token, time()+60*60*24*30, "/{$_POST['org']}/");
-    header("Location: https://oberlindashboard.org/{$_POST['org']}/prefs/docs.php");
+    setcookie('token', $token, time()+60*60*24*30);
+    if ($_POST['org'] === 'oberlin') {
+      $_POST['org'] = '/';
+    } else {
+      $_POST['org'] = "/{$_POST['org']}/";
+    }
+    header("Location: https://environmentaldashboard.org{$_POST['org']}prefs/docs.php");
   }
 }
 $symlink = explode('/', $_SERVER['REQUEST_URI'])[1];

@@ -12,7 +12,7 @@ if (!empty($_POST['name'])) {
     $filename = $_POST['name'];
     $uploadfile = $uploaddir . basename($filename);
     move_uploaded_file($_FILES['file']['tmp_name'], $uploadfile);
-    $new_len = `python /var/www/html/oberlin/time-series/gifduration/gifduration.py /var/www/html/oberlin/time-series/images/{$filename}.gif`;
+    $new_len = `python /var/www/repos/time-series/gifduration/gifduration.py /var/www/repos/time-series/images/{$filename}.gif`;
     $stmt = $db->prepare('INSERT INTO time_series (name, user_id, bin1, bin2, bin3, bin4, bin5, length) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
     $stmt->execute(array($filename, $user_id, $_POST['bin1'], $_POST['bin2'], $_POST['bin3'], $_POST['bin4'], $_POST['bin5'], $new_len));
   }

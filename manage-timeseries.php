@@ -41,11 +41,11 @@ require 'includes/check-signed-in.php';
               $limit = 5;
               $offset = $limit * $page;
               $final_page = ceil($count / $limit);
-              foreach ($db->query("SELECT id FROM meters WHERE timeseries_using > 0 ORDER BY id ASC LIMIT {$offset}, {$limit}") as $row) {
-                $url = "https://environmentaldashboard.org/{$symlink}/chart/?meter0={$row['id']}&title_img=on&title_txt=on";
+              foreach ($db->query("SELECT id FROM meters WHERE timeseries_using > 0 ORDER BY building_id ASC, id ASC LIMIT {$offset}, {$limit}") as $row) {
+                $url = "https://environmentaldashboard.org/{$symlink}/chart/?meter0={$row['id']}";
                 echo "<tr><td>";
-                  echo "<object style='max-width:400px' type='image/svg+xml' data='{$url}'></object></td>";
-                  echo "<td><p>{$url}</p><p><a href='{$url}' target='_blank'>Open in new tab</a></p></td>";
+                  echo "<iframe style='max-width:400px' src='{$url}'></iframe></td>";
+                  echo "<td><p>{$url}&title_img=on&title_txt=on</p><p><a href='{$url}&title_img=on&title_txt=on' target='_blank'>Open in new tab</a></p></td>";
                 echo "</tr>";
               } ?>
             </tbody>

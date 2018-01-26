@@ -37,15 +37,15 @@ require 'includes/check-signed-in.php';
             <tbody>
               <?php
               $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
-              $count = $db->query("SELECT COUNT(*) FROM meters WHERE timeseries_using > 0")->fetchColumn();
+              $count = $db->query("SELECT COUNT(*) FROM meters WHERE timeseries_using > 0 AND org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id})")->fetchColumn();
               $limit = 5;
               $offset = $limit * $page;
               $final_page = ceil($count / $limit);
-              foreach ($db->query("SELECT id FROM meters WHERE timeseries_using > 0 ORDER BY building_id ASC, id ASC LIMIT {$offset}, {$limit}") as $row) {
+              foreach ($db->query("SELECT id, name FROM meters WHERE timeseries_using > 0 AND org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id}) ORDER BY building_id ASC, id ASC LIMIT {$offset}, {$limit}") as $row) {
                 $url = "https://environmentaldashboard.org/{$symlink}/chart/?meter0={$row['id']}";
                 echo "<tr><td>";
-                  echo "<iframe style='max-width:400px' src='{$url}'></iframe></td>";
-                  echo "<td><p>{$url}&title_img=on&title_txt=on</p><p><a href='{$url}&title_img=on&title_txt=on' target='_blank'>Open in new tab</a></p></td>";
+                  echo "<iframe frameborder='0' style='max-width:500px' src='{$url}'></iframe></td>";
+                  echo "<td><p>{$row['name']}</p><p>{$url}&title_img=on&title_txt=on</p><p><a href='{$url}&title_img=on&title_txt=on' target='_blank'>Open in new tab</a></p></td>";
                 echo "</tr>";
               } ?>
             </tbody>

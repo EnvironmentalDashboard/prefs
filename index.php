@@ -1,17 +1,18 @@
 <?php
+error_reporting(-1);
+ini_set('display_errors', 'On');
 require '../includes/db.php';
 $symlink = explode('/', $_SERVER['REQUEST_URI'])[1];
 $stmt = $db->prepare('SELECT token FROM users WHERE slug = ?');
 $stmt->execute(array($symlink));
 if ($stmt->rowCount() === 0) { // default to oberlin
   $user_token = $db->query('SELECT token FROM users WHERE slug = \'oberlin\'')->fetchColumn();
-  $symlink = '/';
+  $symlink = 'oberlin';
 } else {
   $user_token = $stmt->fetchColumn();
-  $symlink = "/{$symlink}/";
 }
 if (isset($_COOKIE['token']) && $user_token === $_COOKIE['token']) {
-  header("Location: https://environmentaldashboard.org{$symlink}prefs/docs");
+  header("Location: https://environmentaldashboard.org/{$symlink}/prefs/docs");
 }
 if (isset($_POST['pass']) && isset($_POST['org'])) {
   $stmt = $db->prepare('SELECT password, token FROM users WHERE slug = ?');
@@ -31,15 +32,9 @@ if (isset($_POST['pass']) && isset($_POST['org'])) {
       $stmt->execute(array($token, $_POST['org']));
     }
     setcookie('token', $token, time()+60*60*24*30);
-    if ($_POST['org'] === 'oberlin') {
-      $_POST['org'] = '/';
-    } else {
-      $_POST['org'] = "/{$_POST['org']}/";
-    }
-    header("Location: https://environmentaldashboard.org{$_POST['org']}prefs/docs.php");
+    header("Location: https://environmentaldashboard.org/{$_POST['org']}/prefs/docs");
   }
 }
-$symlink = explode('/', $_SERVER['REQUEST_URI'])[1];
 
 $stmt = $db->prepare('SELECT COUNT(*) FROM users WHERE password IS NULL AND slug = ?');
 $stmt->execute(array($symlink));

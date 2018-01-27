@@ -31,7 +31,7 @@ if (isset($_POST['pass']) && isset($_POST['org'])) {
       $stmt = $db->prepare('UPDATE users SET token = ? WHERE slug = ?');
       $stmt->execute(array($token, $_POST['org']));
     }
-    setcookie('token', $token, time()+60*60*24*30);
+    setcookie('token', $token, time()+60*60*24*30, "/");
     header("Location: https://environmentaldashboard.org/{$_POST['org']}/prefs/docs");
   }
 }

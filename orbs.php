@@ -54,7 +54,7 @@ if (isset($_POST['submit'])) {
               <?php
               $meter = new Meter($db);
               $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
-              $count = $db->query('SELECT COUNT(*) FROM orbs')->fetch()['COUNT(*)'];
+              $count = $db->query('SELECT COUNT(*) FROM orbs')->fetchColumn();
               $limit = 15;
               $offset = $limit * $page;
               $final_page = ceil($count / $limit);
@@ -95,6 +95,8 @@ if (isset($_POST['submit'])) {
               <tr<?php echo ($elec_last_updated === false || $elec_outdated || $water_last_updated === false || $water_outdated) ? ' class="table-danger"' : ''; ?>>
                 <td><?php echo $row['name']; ?></td>
                 <td id="ip<?php echo $row['ip'] ?>"><?php echo $row['ip']; ?></td>
+                <td><?php echo $elec_meter; ?></td>
+                <td><?php echo $water_meter; ?></td>
                 <?php
                 if ($row['elec_uuid'] == null) {
                   $elec = '-';

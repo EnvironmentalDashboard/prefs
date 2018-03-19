@@ -61,7 +61,7 @@ if (isset($_POST['submit'])) {
               foreach ($db->query("SELECT name, elec_uuid, water_uuid, elec_rvid, water_rvid, disabled, INET_NTOA(ip) AS ip FROM orbs ORDER BY name ASC LIMIT {$offset}, {$limit}") as $row) {
                 $elec_last_updated = 0;
                 if ($row['elec_uuid'] != null) {
-                  $elec_meter = $db->query("SELECT name FROM meters WHERE bos_uuid = {$row['elec_uuid']}");
+                  $elec_meter = $db->query("SELECT name FROM meters WHERE bos_uuid = '{$row['elec_uuid']}'");
                   if ($elec_meter->rowCount() != 1) {
                     $elec_meter = 'Meter sync error';
                     $elec_outdated = true;
@@ -77,7 +77,7 @@ if (isset($_POST['submit'])) {
                 }
                 $water_last_updated = 0;
                 if ($row['water_uuid'] != null) {
-                  $water_meter = $db->query("SELECT name FROM meters WHERE bos_uuid = {$row['water_uuid']}");
+                  $water_meter = $db->query("SELECT name FROM meters WHERE bos_uuid = '{$row['water_uuid']}'");
                   if ($water_meter->rowCount() != 1) {
                     $water_meter = 'Meter sync error';
                     $water_outdated = true;

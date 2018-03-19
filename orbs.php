@@ -36,12 +36,13 @@ if (isset($_POST['submit'])) {
       <div class="row">
         <div class="col-sm-12">
           <h1>Oberlin orbs</h1>
-          <p>The script at ~/orbs/orbs.sh.php retrieves the reading from the relative_values table for each orb and outputs a shell script that is downloaded by steve@ajlc.csr.oberlin.edu (check the root crontab with <code>sudo crontab -e</code>). The ID of the relative value configuration record is displayed as a way of verifying that an orb is correct.</p>
           <table class="table">
             <thead class="thead-default">
               <tr>
                 <th>Name</th>
                 <th>IP</th>
+                <th>Electricity meter</th>
+                <th>Water meter</th>
                 <th>Electricity bin</th>
                 <th>Water bin</th>
                 <th>Electricity <code>relative_value</code> id</th>
@@ -58,22 +59,36 @@ if (isset($_POST['submit'])) {
               $offset = $limit * $page;
               $final_page = ceil($count / $limit);
               foreach ($db->query("SELECT name, elec_uuid, water_uuid, elec_rvid, water_rvid, disabled, INET_NTOA(ip) AS ip FROM orbs ORDER BY name ASC LIMIT {$offset}, {$limit}") as $row) {
-                if ($row['elec_uuid'] !== 'x') {
-                  $stmt = $db->prepare('SELECT last_updated FROM relative_values WHERE meter_uuid = ?');
-                  $stmt->execute(array($row['elec_uuid']));
-                  $elec_last_updated = $stmt->fetchColumn();
-                  $elec_outdated = ($elec_last_updated === false || (time()-60) > $elec_last_updated) ? true : false;
+                $elec_last_updated = 0;
+                if ($row['elec_uuid'] != null) {
+                  $elec_meter = $db->query("SELECT name FROM meters WHERE bos_uuid = {$row['elec_uuid']}");
+                  if ($elec_meter->rowCount() != 1) {
+                    $elec_meter = 'Meter sync error';
+                    $elec_outdated = true;
+                  } else {
+                    $elec_meter = $elec_meter->fetchColumn();
+                    $stmt = $db->prepare('SELECT last_updated FROM relative_values WHERE meter_uuid = ?');
+                    $stmt->execute(array($row['elec_uuid']));
+                    $elec_last_updated = $stmt->fetchColumn();
+                    $elec_outdated = ($elec_last_updated === false || (time()-60) > $elec_last_updated) ? true : false;
+                  }
                 } else {
-                  $elec_last_updated = 0;
                   $elec_outdated = false;
                 }
-                if ($row['water_uuid'] !== 'x') {
-                  $stmt = $db->prepare('SELECT last_updated FROM relative_values WHERE meter_uuid = ?');
-                  $stmt->execute(array($row['water_uuid']));
-                  $water_last_updated = $stmt->fetchColumn();
-                  $water_outdated = ($water_last_updated === false || (time()-60) > $water_last_updated) ? true : false;
+                $water_last_updated = 0;
+                if ($row['water_uuid'] != null) {
+                  $water_meter = $db->query("SELECT name FROM meters WHERE bos_uuid = {$row['water_uuid']}");
+                  if ($water_meter->rowCount() != 1) {
+                    $water_meter = 'Meter sync error';
+                    $water_outdated = true;
+                  } else {
+                    $water_meter = $water_meter->fetchColumn();
+                    $stmt = $db->prepare('SELECT last_updated FROM relative_values WHERE meter_uuid = ?');
+                    $stmt->execute(array($row['water_uuid']));
+                    $water_last_updated = $stmt->fetchColumn();
+                    $water_outdated = ($water_last_updated === false || (time()-60) > $water_last_updated) ? true : false;
+                  }
                 } else {
-                  $water_last_updated = 0;
                   $water_outdated = false;
                 }
                 ?>
@@ -81,7 +96,7 @@ if (isset($_POST['submit'])) {
                 <td><?php echo $row['name']; ?></td>
                 <td id="ip<?php echo $row['ip'] ?>"><?php echo $row['ip']; ?></td>
                 <?php
-                if ($row['elec_uuid'] === 'x') {
+                if ($row['elec_uuid'] == null) {
                   $elec = '-';
                 }
                 else {
@@ -90,7 +105,7 @@ if (isset($_POST['submit'])) {
                   $elec = round(($stmt->fetchColumn() / 100) * 4); // must be integer 0-4
                 }
                 echo "<td>{$elec}</td>";
-                if ($row['water_uuid'] === 'x') {
+                if ($row['water_uuid'] == null) {
                   $water = '-';
                 }
                 else {
@@ -100,7 +115,7 @@ if (isset($_POST['submit'])) {
                 }
                 echo "<td>{$water}</td>";
                 ?>
-                <td><?php if ($row['elec_uuid'] !== 'x') {
+                <td><?php if ($row['elec_uuid'] != null) {
                   echo $row['elec_rvid'];
                   if ($elec_last_updated === false) {
                     // var_dump($row['elec_uuid']);
@@ -110,7 +125,7 @@ if (isset($_POST['submit'])) {
                   }
                 }
                 ?></td>
-                <td><?php if ($row['water_uuid'] !== 'x') {
+                <td><?php if ($row['water_uuid'] != null) {
                   echo $row['water_rvid'];
                   if ($water_last_updated === false) {
                     // var_dump($row['water_uuid']);

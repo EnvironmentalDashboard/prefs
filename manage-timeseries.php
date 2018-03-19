@@ -61,7 +61,19 @@ require 'includes/check-signed-in.php';
                 </a>
               </li>
               <?php }
+              $ok = true;
               for ($i = 1; $i <= $final_page; $i++) {
+                if ($page > 20 && $i > 3 && $ok) {
+                  $i = $page - 2;
+                  $ok = false;
+                  echo "<li class='page-item'><span class='page-link'>...</span></li>";
+                }
+                if ($i >= 20 && $final_page > ($i+3) && $page+3 < $i) {
+                  $i = $final_page - 3;
+                  echo "<li class='page-item'><span class='page-link'>...</span></li>";
+                }
+                // if ($i > 3 && $final_page > 20 && ($page+1)-$final_page < 3) {
+                // }
                 if ($page + 1 === $i) {
                   echo '<li class="page-item active"><a class="page-link" href="?page=' . $i . '">' . $i . '</a></li>';
                 }

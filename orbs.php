@@ -21,8 +21,7 @@ if (isset($_POST['submit'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
     <title>Orbs Backend</title>
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
   </head>
   <body style="padding-top:5px">
     <div class="container">
@@ -36,130 +35,132 @@ if (isset($_POST['submit'])) {
       <div class="row">
         <div class="col-sm-12">
           <h1>Oberlin orbs</h1>
-          <table class="table">
-            <thead class="thead-default">
-              <tr>
-                <th>Name</th>
-                <th>IP</th>
-                <th>Electricity meter</th>
-                <th>Water meter</th>
-                <th>Electricity bin</th>
-                <th>Water bin</th>
-                <th>Electricity <code>relative_value</code> id</th>
-                <th>Water <code>relative_value</code> id</th>
-                <th>Disable</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php
-              $meter = new Meter($db);
-              $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
-              $count = $db->query('SELECT COUNT(*) FROM orbs')->fetchColumn();
-              $limit = 15;
-              $offset = $limit * $page;
-              $final_page = ceil($count / $limit);
-              foreach ($db->query("SELECT name, elec_uuid, water_uuid, elec_rvid, water_rvid, disabled, INET_NTOA(ip) AS ip FROM orbs ORDER BY name ASC LIMIT {$offset}, {$limit}") as $row) {
-                $elec_last_updated = 0;
-                if ($row['elec_uuid'] != null) {
-                  $elec_meter = $db->query("SELECT name FROM meters WHERE bos_uuid = '{$row['elec_uuid']}'");
-                  if ($elec_meter->rowCount() != 1) {
-                    $elec_meter = 'Meter sync error';
-                    $elec_outdated = true;
-                  } else {
-                    $elec_meter = $elec_meter->fetchColumn();
-                    $stmt = $db->prepare('SELECT last_updated FROM relative_values WHERE meter_uuid = ?');
-                    $stmt->execute(array($row['elec_uuid']));
-                    $elec_last_updated = $stmt->fetchColumn();
-                    $elec_outdated = ($elec_last_updated === false || (time()-60) > $elec_last_updated) ? true : false;
-                  }
-                } else {
-                  $elec_outdated = false;
-                }
-                $water_last_updated = 0;
-                if ($row['water_uuid'] != null) {
-                  $water_meter = $db->query("SELECT name FROM meters WHERE bos_uuid = '{$row['water_uuid']}'");
-                  if ($water_meter->rowCount() != 1) {
-                    $water_meter = 'Meter sync error';
-                    $water_outdated = true;
-                  } else {
-                    $water_meter = $water_meter->fetchColumn();
-                    $stmt = $db->prepare('SELECT last_updated FROM relative_values WHERE meter_uuid = ?');
-                    $stmt->execute(array($row['water_uuid']));
-                    $water_last_updated = $stmt->fetchColumn();
-                    $water_outdated = ($water_last_updated === false || (time()-60) > $water_last_updated) ? true : false;
-                  }
-                } else {
-                  $water_outdated = false;
-                }
-                ?>
-              <tr<?php echo ($elec_last_updated === false || $elec_outdated || $water_last_updated === false || $water_outdated) ? ' class="table-danger"' : ''; ?>>
-                <td><?php echo $row['name']; ?></td>
-                <td id="ip<?php echo $row['ip'] ?>"><?php echo $row['ip']; ?></td>
-                <td><?php echo $elec_meter; ?></td>
-                <td><?php echo $water_meter; ?></td>
+          <div class="table-resposive">
+            <table class="table">
+              <thead class="thead-default">
+                <tr>
+                  <th>Name</th>
+                  <th>IP</th>
+                  <th>Electricity meter</th>
+                  <th>Water meter</th>
+                  <th>Electricity bin</th>
+                  <th>Water bin</th>
+                  <th>Electricity <code>relative_value</code> id</th>
+                  <th>Water <code>relative_value</code> id</th>
+                  <th>Disable</th>
+                </tr>
+              </thead>
+              <tbody>
                 <?php
-                if ($row['elec_uuid'] == null) {
-                  $elec = '-';
-                }
-                else {
-                  $stmt = $db->prepare('SELECT relative_value FROM relative_values WHERE id = ?');
-                  $stmt->execute(array($row['elec_rvid']));
-                  $elec = round(($stmt->fetchColumn() / 100) * 4); // must be integer 0-4
-                }
-                echo "<td>{$elec}</td>";
-                if ($row['water_uuid'] == null) {
-                  $water = '-';
-                }
-                else {
-                  $stmt = $db->prepare('SELECT relative_value FROM relative_values WHERE id = ?');
-                  $stmt->execute(array($row['water_rvid']));
-                  $water = round(($stmt->fetchColumn() / 100) * 4); // must be integer 0-4
-                }
-                echo "<td>{$water}</td>";
-                ?>
-                <td><?php if ($row['elec_uuid'] != null) {
-                  echo $row['elec_rvid'];
-                  if ($elec_last_updated === false) {
-                    // var_dump($row['elec_uuid']);
-                    echo ' (No relative value record)';
-                  } elseif ($elec_outdated) {
-                    echo ' (Outdated)';
+                $meter = new Meter($db);
+                $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
+                $count = $db->query('SELECT COUNT(*) FROM orbs')->fetchColumn();
+                $limit = 15;
+                $offset = $limit * $page;
+                $final_page = ceil($count / $limit);
+                foreach ($db->query("SELECT name, elec_uuid, water_uuid, elec_rvid, water_rvid, disabled, INET_NTOA(ip) AS ip FROM orbs ORDER BY name ASC LIMIT {$offset}, {$limit}") as $row) {
+                  $elec_last_updated = 0;
+                  $elec_meter = '';
+                  $water_meter = '';
+                  $water_last_updated = 0;
+                  $elec_outdated = false;
+                  $water_outdated = false;
+                  if ($row['elec_uuid'] != null) {
+                    $elec_meter = $db->query("SELECT name FROM meters WHERE bos_uuid = '{$row['elec_uuid']}'");
+                    if ($elec_meter->rowCount() != 1) {
+                      $elec_meter = 'Meter not found';
+                      $elec_outdated = true;
+                    } else {
+                      $elec_meter = $elec_meter->fetchColumn();
+                      $stmt = $db->prepare('SELECT last_updated FROM relative_values WHERE meter_uuid = ?');
+                      $stmt->execute(array($row['elec_uuid']));
+                      $elec_last_updated = $stmt->fetchColumn();
+                      $elec_outdated = ($elec_last_updated === false || (time()-60) > $elec_last_updated) ? true : false;
+                    }
                   }
-                }
-                ?></td>
-                <td><?php if ($row['water_uuid'] != null) {
-                  echo $row['water_rvid'];
-                  if ($water_last_updated === false) {
-                    // var_dump($row['water_uuid']);
-                    echo ' (No relative value record)';
-                  } elseif ($water_outdated) {
-                    echo ' (Outdated)';
+                  if ($row['water_uuid'] != null) {
+                    $water_meter = $db->query("SELECT name FROM meters WHERE bos_uuid = '{$row['water_uuid']}'");
+                    if ($water_meter->rowCount() != 1) {
+                      $water_meter = 'Meter not found';
+                      $water_outdated = true;
+                    } else {
+                      $water_meter = $water_meter->fetchColumn();
+                      $stmt = $db->prepare('SELECT last_updated FROM relative_values WHERE meter_uuid = ?');
+                      $stmt->execute(array($row['water_uuid']));
+                      $water_last_updated = $stmt->fetchColumn();
+                      $water_outdated = ($water_last_updated === false || (time()-60) > $water_last_updated) ? true : false;
+                    }
                   }
-                }
-                ?></td>
-                <td>
-                  <?php if ($row['disabled'] === '1') { ?>
-                  <form action="" method="POST">
-                    <input type="hidden" name="orb" value="<?php echo $row['name'] ?>">
-                    <input type="submit" class="btn btn-primary" name="submit" value="Turn on">
-                  </form>
-                  <?php } else { ?>
-                  <form action="" method="POST">
-                    <input type="hidden" name="orb" value="<?php echo $row['name'] ?>">
-                    <input type="submit" class="btn btn-danger" name="submit" value="Turn off">
-                  </form>
-                  <?php } ?>
-                </td>
-              </tr>
-              <?php } ?>
-            </tbody>
-          </table>
+                  ?>
+                <tr<?php echo ($elec_last_updated === false || $elec_outdated || $water_last_updated === false || $water_outdated) ? ' class="table-danger"' : ''; ?>>
+                  <td><?php echo $row['name']; ?></td>
+                  <td id="ip<?php echo $row['ip'] ?>"><?php echo $row['ip']; ?></td>
+                  <td><?php echo $elec_meter; ?></td>
+                  <td><?php echo $water_meter; ?></td>
+                  <?php
+                  if ($row['elec_uuid'] == null) {
+                    $elec = '-';
+                  }
+                  else {
+                    $stmt = $db->prepare('SELECT relative_value FROM relative_values WHERE id = ?');
+                    $stmt->execute(array($row['elec_rvid']));
+                    $elec = round(($stmt->fetchColumn() / 100) * 4); // must be integer 0-4
+                  }
+                  echo "<td>{$elec}</td>";
+                  if ($row['water_uuid'] == null) {
+                    $water = '-';
+                  }
+                  else {
+                    $stmt = $db->prepare('SELECT relative_value FROM relative_values WHERE id = ?');
+                    $stmt->execute(array($row['water_rvid']));
+                    $water = round(($stmt->fetchColumn() / 100) * 4); // must be integer 0-4
+                  }
+                  echo "<td>{$water}</td>";
+                  ?>
+                  <td><?php if ($row['elec_uuid'] != null) {
+                    echo $row['elec_rvid'];
+                    if ($elec_last_updated === false) {
+                      // var_dump($row['elec_uuid']);
+                      echo ' (No relative value record)';
+                    } elseif ($elec_outdated) {
+                      echo ' (Outdated)';
+                    }
+                  }
+                  ?></td>
+                  <td><?php if ($row['water_uuid'] != null) {
+                    echo $row['water_rvid'];
+                    if ($water_last_updated === false) {
+                      // var_dump($row['water_uuid']);
+                      echo ' (No relative value record)';
+                    } elseif ($water_outdated) {
+                      echo ' (Outdated)';
+                    }
+                  }
+                  ?></td>
+                  <td>
+                    <?php if ($row['disabled'] === '1') { ?>
+                    <form action="" method="POST">
+                      <input type="hidden" name="orb" value="<?php echo $row['name'] ?>">
+                      <input type="submit" class="btn btn-primary" name="submit" value="Turn on">
+                    </form>
+                    <?php } else { ?>
+                    <form action="" method="POST">
+                      <input type="hidden" name="orb" value="<?php echo $row['name'] ?>">
+                      <input type="submit" class="btn btn-danger" name="submit" value="Turn off">
+                    </form>
+                    <?php } ?>
+                  </td>
+                </tr>
+                <?php } ?>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
       <div class="row">
-        <div class="col-sm-12">
-          <nav aria-label="Page navigation" class="text-center">
-            <ul class="pagination pagination-lg">
+        <div class="col">
+          <nav aria-label="Page navigation">
+            <ul class="pagination pagination-lg justify-content-center">
               <?php if ($page > 0) { ?>
               <li class="page-item">
                 <a class="page-link" href="?sort=<?php echo (isset($_GET['sort'])) ? $_GET['sort'] : ''; ?>&page=<?php echo $page ?>" aria-label="Previous">
@@ -190,8 +191,8 @@ if (isset($_POST['submit'])) {
       </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js" integrity="sha384-b/U6ypiBEHpOf/4+1nzFpr53nxSS+GLCkfwBdFNTxtclqqenISfwAzpKaMNFNmj4" crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/js/bootstrap.min.js" integrity="sha384-h0AbiXch4ZDo7tp9hKZ4TsHbi047NrKGLO3SEJAg45jXxnGIfYzk4Si90RDIqNm1" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
     <script>
       // function ping(ip) {
       //   $.ajax({

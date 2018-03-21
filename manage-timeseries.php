@@ -36,16 +36,29 @@ require 'includes/check-signed-in.php';
             <tbody>
               <?php
               $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
-              $count = $db->query("SELECT COUNT(*) FROM meters WHERE source = 'buildingos' AND ((gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = 'orb_server' AND meter_uuid != '')) AND org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id})")->fetchColumn();
+              $count = $db->query("SELECT COUNT(*) FROM saved_charts")->fetchColumn();
               $limit = 5;
               $offset = $limit * $page;
               $final_page = ceil($count / $limit);
-              foreach ($db->query("SELECT id, building_id, name FROM meters WHERE source = 'buildingos' AND ((gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = 'orb_server' AND meter_uuid != '')) AND org_id IN (SELECT org_id FROM users_orgs_map WHERE user_id = {$user_id}) ORDER BY building_id ASC, id ASC LIMIT {$offset}, {$limit}") as $row) {
-                $building = $db->query('SELECT name FROM buildings WHERE id = '.intval($row['building_id']))->fetchColumn();
-                $url = "https://environmentaldashboard.org/{$symlink}/chart/?meter0={$row['id']}";
+              foreach ($db->query("SELECT DISTINCT chart_id, GROUP_CONCAT(meter_id) AS meter_csv FROM saved_chart_meters GROUP BY chart_id ORDER BY chart_id ASC LIMIT {$offset}, {$limit}") as $row) {
+                $i = 0;
+                $http_query = [];
+                $info = '';
+                $meters = explode(',', $row['meter_csv']);
+                foreach ($meters as $meter) {
+                  $http_query["meter".($i++)] = $meter;
+                  $stmt = $db->prepare('SELECT name, building_id FROM meters WHERE id = ?');
+                  $stmt->execute([$meter]);
+                  $meter_info = $stmt->fetch();
+                  $stmt = $db->prepare('SELECT name FROM buildings WHERE id = ?');
+                  $stmt->execute([$meter_info['building_id']]);
+                  $building = $stmt->fetchColumn();
+                  $info .= "{$building} {$meter_info['name']}<br>";
+                }
+                $url = "https://environmentaldashboard.org/{$symlink}/chart/?".http_build_query($http_query);
                 echo "<tr><td>";
-                  echo "<iframe frameborder='0' style='max-width:500px' src='{$url}'></iframe></td>";
-                  echo "<td><p>{$building} {$row['name']}</p><p>{$url}&title_img=on&title_txt=on</p><p><a href='{$url}&title_img=on&title_txt=on' target='_blank'>Open in new tab</a></p></td>";
+                echo "<iframe frameborder='0' style='max-width:500px' src='{$url}'></iframe></td>";
+                echo "<td><p>{$info}</p><p>{$url}&title_img=on&title_txt=on</p><p><a href='{$url}&title_img=on&title_txt=on' target='_blank'>Open in new tab</a></p></td>";
                 echo "</tr>";
               } ?>
             </tbody>

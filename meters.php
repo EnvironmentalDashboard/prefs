@@ -46,7 +46,7 @@ function time_ago($last_updated) {
       <div class="row">
         <div class="col-sm-8">
           <h1>Meters</h1>
-          <!-- <p>On average, the last attempt to update a meter was made <?php //echo $db->query("SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE source = 'buildingos' AND ((gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = 'orb_server' AND meter_uuid != ''))")->fetchColumn(); ?> minutes ago.</p> -->
+          <!-- <p>On average, the last attempt to update a meter was made <?php //echo $db->query("SELECT ROUND(AVG(UNIX_TIMESTAMP() - live_last_updated)/60, 2) AS minutes FROM meters WHERE source = 'buildingos' AND (id IN (SELECT meter_id FROM saved_chart_meters) OR id IN (SELECT meter_id FROM gauges) OR bos_uuid IN (SELECT elec_uuid FROM orbs) OR bos_uuid IN (SELECT water_uuid FROM orbs) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = 'orb_server' AND meter_uuid != ''))")->fetchColumn(); ?> minutes ago.</p> -->
         </div>
         <div class="col-sm-4">
           <form action="" method="GET" id='sortbyform'>
@@ -107,7 +107,7 @@ function time_ago($last_updated) {
               } elseif (isset($_GET['sortby']) && $_GET['sortby'] === 'all') {
                 $sql = '';
               } else {
-                $sql = 'AND ((gauges_using > 0 OR for_orb > 0 OR timeseries_using > 0) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\')) ';
+                $sql = 'AND (id IN (SELECT meter_id FROM saved_chart_meters) OR id IN (SELECT meter_id FROM gauges) OR bos_uuid IN (SELECT elec_uuid FROM orbs) OR bos_uuid IN (SELECT water_uuid FROM orbs) OR bos_uuid IN (SELECT DISTINCT meter_uuid FROM relative_values WHERE permission = \'orb_server\')) ';
               }
               foreach ($db->query("SELECT id, org_id, bos_uuid, name, url, current, live_last_updated, gauges_using, timeseries_using, for_orb, orb_server FROM meters WHERE building_id = {$building['id']} {$sql}ORDER BY name ASC") as $meter) {
                 $tr_class = '';

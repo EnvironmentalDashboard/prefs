@@ -19,7 +19,7 @@ function gaugeURL($rv_id, $meter_id, $color, $bg, $height, $width, $font_family,
     'ver' => $ver,
     'units' => $units,
   ));
-  return "https://oberlindashboard.org/oberlin/gauges/gauge.php?" . $q;
+  return "https://environmentaldashboard.org/oberlin/gauges/gauge.php?" . $q;
 }
 if (isset($_POST['edit'])) {
   $q = array(

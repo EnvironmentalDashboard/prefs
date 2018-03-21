@@ -30,7 +30,7 @@ require 'includes/check-signed-in.php';
             <thead>
               <tr>
                 <th>Preview</th>
-                <th>URL</th>
+                <th>Info</th>
               </tr>
             </thead>
             <tbody>
@@ -43,7 +43,8 @@ require 'includes/check-signed-in.php';
               foreach ($db->query("SELECT DISTINCT chart_id, GROUP_CONCAT(meter_id) AS meter_csv FROM saved_chart_meters GROUP BY chart_id ORDER BY chart_id ASC LIMIT {$offset}, {$limit}") as $row) {
                 $i = 0;
                 $http_query = [];
-                $info = '';
+                $stmt = $db->prepare("SELECT label FROM saved_charts WHERE id = ? AND label != ''");
+                $info = ($stmt->rowCount() > 0) ? "Label: ".($stmt->fetchColumn())."<br>Meters:<br>" : "Meters:<br>";
                 $meters = explode(',', $row['meter_csv']);
                 foreach ($meters as $meter) {
                   $http_query["meter".($i++)] = $meter;

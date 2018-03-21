@@ -4,6 +4,12 @@ ini_set('display_errors', 'On');
 $symlink = explode('/', $_SERVER['REQUEST_URI'])[1];
 require '../includes/db.php';
 require 'includes/check-signed-in.php';
+if (isset($_POST['delete-chart']) && isset($_POST['chart-id']) && $_POST['delete-chart'] === 'Delete') {
+  $stmt = $db->prepare('DELETE FROM saved_charts WHERE id = ?');
+  $stmt->execute([$_POST['chart-id']]);
+  $stmt = $db->prepare('DELETE FROM saved_chart_meters WHERE chart_id = ?');
+  $stmt->execute([$_POST['chart-id']]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -31,6 +37,7 @@ require 'includes/check-signed-in.php';
               <tr>
                 <th>Preview</th>
                 <th>Info</th>
+                <th>Delete</th>
               </tr>
             </thead>
             <tbody>
@@ -40,11 +47,12 @@ require 'includes/check-signed-in.php';
               $limit = 5;
               $offset = $limit * $page;
               $final_page = ceil($count / $limit);
-              foreach ($db->query("SELECT DISTINCT chart_id, GROUP_CONCAT(meter_id) AS meter_csv FROM saved_chart_meters GROUP BY chart_id ORDER BY chart_id ASC LIMIT {$offset}, {$limit}") as $row) {
+              foreach ($db->query("SELECT DISTINCT chart_id, GROUP_CONCAT(meter_id) AS meter_csv FROM saved_chart_meters GROUP BY chart_id ORDER BY chart_id DESC LIMIT {$offset}, {$limit}") as $row) {
                 $i = 0;
                 $http_query = [];
                 $stmt = $db->prepare("SELECT label FROM saved_charts WHERE id = ? AND label != ''");
-                $info = ($stmt->rowCount() > 0) ? "Label: ".($stmt->fetchColumn())."<br>Meters:<br>" : "Meters:<br>";
+                $stmt->execute([$row['chart_id']]);
+                $info = ($stmt->rowCount() > 0) ? "<p>Label: ".($stmt->fetchColumn())."</p><p>Meters:<br>" : "<p>Meters:<br>";
                 $meters = explode(',', $row['meter_csv']);
                 foreach ($meters as $meter) {
                   $http_query["meter".($i++)] = $meter;
@@ -59,8 +67,11 @@ require 'includes/check-signed-in.php';
                 $url = "https://environmentaldashboard.org/{$symlink}/chart/?".http_build_query($http_query);
                 echo "<tr><td>";
                 echo "<iframe frameborder='0' style='max-width:500px' src='{$url}'></iframe></td>";
-                echo "<td><p>{$info}</p><p>{$url}&title_img=on&title_txt=on</p><p><a href='{$url}&title_img=on&title_txt=on' target='_blank'>Open in new tab</a></p></td>";
-                echo "</tr>";
+                echo "<td>{$info}</p><p>{$url}&title_img=on&title_txt=on</p><p><a href='{$url}&title_img=on&title_txt=on' target='_blank'>Open in new tab</a></p></td>";
+                echo '<td><form action="" method="POST">
+                        <input type="hidden" name="chart-id" value="'.$row['chart_id'].'">
+                        <input type="submit" name="delete-chart" value="Delete" class="btn btn-danger">
+                      </form></td></tr>';
               } ?>
             </tbody>
           </table>

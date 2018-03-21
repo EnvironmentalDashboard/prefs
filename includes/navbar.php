@@ -29,7 +29,7 @@
   <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Time series</a>
     <div class="dropdown-menu">
-      <!-- <a class="dropdown-item <?php echo ($fn === 'create-timeseries') ? 'active' : ''; ?>" href="create-timeseries.php">Create time series</a> -->
+      <a class="dropdown-item <?php echo ($fn === 'create-timeseries') ? 'active' : ''; ?>" href="create-timeseries.php">Create time series</a>
       <a class="dropdown-item <?php echo ($fn === 'manage-timeseries') ? 'active' : ''; ?>" href="manage-timeseries.php">Manage time series</a>
       <a class="dropdown-item <?php echo ($fn === 'timeseries-animations') ? 'active' : ''; ?>" href="timeseries-animations.php">Customize animations</a>
     </div>

@@ -1,7 +1,6 @@
 <?php
 error_reporting(-1);
 ini_set('display_errors', 'On');
-$symlink = explode('/', $_SERVER['REQUEST_URI'])[1];
 require '../includes/db.php';
 require 'includes/check-signed-in.php';
 if (isset($_POST['delete-chart']) && isset($_POST['chart-id']) && $_POST['delete-chart'] === 'Delete') {
@@ -10,6 +9,10 @@ if (isset($_POST['delete-chart']) && isset($_POST['chart-id']) && $_POST['delete
   $stmt = $db->prepare('DELETE FROM saved_chart_meters WHERE chart_id = ?');
   $stmt->execute([$_POST['chart-id']]);
 }
+
+$stmt = $db->prepare('SELECT id FROM orgs WHERE api_id IN (SELECT id FROM api WHERE user_id = ?)');
+$stmt->execute([$user_id]);
+$org_ids = implode(',', array_column($stmt->fetchAll(), 'id'));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -47,7 +50,7 @@ if (isset($_POST['delete-chart']) && isset($_POST['chart-id']) && $_POST['delete
               $limit = 5;
               $offset = $limit * $page;
               $final_page = ceil($count / $limit);
-              foreach ($db->query("SELECT DISTINCT chart_id, GROUP_CONCAT(meter_id) AS meter_csv FROM saved_chart_meters GROUP BY chart_id ORDER BY chart_id DESC LIMIT {$offset}, {$limit}") as $row) {
+              foreach ($db->query("SELECT DISTINCT chart_id, GROUP_CONCAT(meter_id) AS meter_csv FROM saved_chart_meters WHERE meter_id IN (SELECT id FROM meters WHERE org_id IN ({$org_ids})) GROUP BY chart_id ORDER BY chart_id DESC LIMIT {$offset}, {$limit}") as $row) {
                 $i = 0;
                 $http_query = [];
                 $stmt = $db->prepare("SELECT label FROM saved_charts WHERE id = ? AND label != ''");

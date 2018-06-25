@@ -2,16 +2,10 @@
 error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
-$symlink = explode('/', $_SERVER['REQUEST_URI'])[1];
 $stmt = $db->prepare('SELECT token FROM users WHERE slug = ?');
 $stmt->execute(array($symlink));
-if ($stmt->rowCount() === 0) { // default to oberlin
-  $user_token = $db->query('SELECT token FROM users WHERE slug = \'oberlin\'')->fetchColumn();
-  $symlink = 'oberlin';
-} else {
-  $user_token = $stmt->fetchColumn();
-}
-if (isset($_COOKIE['token']) && $user_token === $_COOKIE['token']) {
+$user_token = $stmt->fetchColumn();
+if (isset($_COOKIE['token']) && $user_token !== null && $user_token === $_COOKIE['token']) {
   header("Location: https://environmentaldashboard.org/{$symlink}/prefs/docs");
 }
 if (isset($_POST['pass']) && isset($_POST['org'])) {

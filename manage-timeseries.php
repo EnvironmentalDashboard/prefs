@@ -46,11 +46,12 @@ $org_ids = implode(',', array_column($stmt->fetchAll(), 'id'));
             <tbody>
               <?php
               $page = (empty($_GET['page'])) ? 0 : intval($_GET['page']) - 1;
-              $count = $db->query("SELECT COUNT(*) FROM saved_charts")->fetchColumn();
               $limit = 5;
               $offset = $limit * $page;
+              $rows = $db->query("SELECT SQL_CALC_FOUND_ROWS DISTINCT chart_id, GROUP_CONCAT(meter_id) AS meter_csv FROM saved_chart_meters WHERE meter_id IN (SELECT id FROM meters WHERE org_id IN ({$org_ids})) GROUP BY chart_id ORDER BY chart_id DESC LIMIT {$offset}, {$limit}")->fetchAll();
+              $count = $db->query('SELECT FOUND_ROWS();')->fetchColumn();
               $final_page = ceil($count / $limit);
-              foreach ($db->query("SELECT DISTINCT chart_id, GROUP_CONCAT(meter_id) AS meter_csv FROM saved_chart_meters WHERE meter_id IN (SELECT id FROM meters WHERE org_id IN ({$org_ids})) GROUP BY chart_id ORDER BY chart_id DESC LIMIT {$offset}, {$limit}") as $row) {
+              foreach ($rows as $row) {
                 $i = 0;
                 $http_query = [];
                 $stmt = $db->prepare("SELECT label FROM saved_charts WHERE id = ? AND label != ''");

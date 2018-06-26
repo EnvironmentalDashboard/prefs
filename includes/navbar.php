@@ -34,13 +34,13 @@
       <a class="dropdown-item <?php echo ($fn === 'timeseries-animations') ? 'active' : ''; ?>" href="timeseries-animations.php">Customize animations</a>
     </div>
   </li>
+  <?php } if ($symlink === 'oberlin') { ?>
   <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Teacher resources</a>
     <div class="dropdown-menu">
       <a class="dropdown-item <?php echo ($fn === 'add-lesson') ? 'active' : ''; ?>" href="add-lesson.php">Add lesson</a>
     </div>
   </li>
-  <?php } if ($symlink === 'oberlin') { ?>
   <li class="nav-item">
     <a class="nav-link <?php echo ($fn === 'orbs') ? 'active' : ''; ?>" href="orbs.php">Orbs</a>
   </li>

@@ -3,6 +3,7 @@ error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
 require 'includes/check-signed-in.php';
+$user_id = 2;
 if (isset($_POST['submit'])) { // edit record
   if (!file_exists($_FILES['file']['tmp_name']) || !is_uploaded_file($_FILES['file']['tmp_name'])) {
     $stmt = $db->prepare("UPDATE cwd_landscape_components
@@ -36,7 +37,7 @@ if (isset($_POST['submit'])) { // edit record
       $_POST['widthxheight'],
       $_POST['title'],
       $_POST['link'],
-      'http://'.$_SERVER['HTTP_HOST'].'/cwd/img/' . $filename,
+      'http://'.$_SERVER['HTTP_HOST'].'/cwd-files/img/' . $filename,
       $_POST['text'],
       $_POST['order'],
       $_POST['component'],
@@ -47,6 +48,7 @@ if (isset($_POST['submit'])) { // edit record
 if (isset($_POST['add-landscape-component'])) { // add record
   $dir = __dir__;
   $uploaddir = dirname($dir) . '/cwd/img/';
+  $filename = $_FILES['file']['name'];
   $uploadfile = $uploaddir . basename($filename);
   if (file_exists($uploadfile)) {
     $uploadfile = $uploaddir . uniqid();
@@ -54,7 +56,7 @@ if (isset($_POST['add-landscape-component'])) { // add record
   move_uploaded_file($_FILES['file']['tmp_name'], $uploadfile);
   $stmt = $db->prepare("INSERT INTO cwd_landscape_components
     (user_id, component, pos, widthxheight, title, link, img, `text`, `order`)
-    VALUES (:id, :c, :p, :wh, :t, :l, :i, :txt, :txtp, :o)");
+    VALUES (:id, :c, :p, :wh, :t, :l, :i, :txt, :o)");
   $stmt->execute(array(
     ':id' => $user_id,
     ':c' => uniqid(),
@@ -62,7 +64,7 @@ if (isset($_POST['add-landscape-component'])) { // add record
     ':wh' => str_replace(' ', '', $_POST['wxh']),
     ':t' => $_POST['title'],
     ':l' => $_POST['link'],
-    ':i' => 'http://'.$_SERVER['HTTP_HOST'].'/cwd/img/' . $filename,
+    ':i' => 'http://'.$_SERVER['HTTP_HOST'].'/cwd-files/img/' . $filename,
     ':txt' => $_POST['text'],
     ':o' => $_POST['order']
   ));

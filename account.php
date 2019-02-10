@@ -48,7 +48,6 @@ if (isset($_POST['delete-account'])) {
   $stmt->execute(array($user_id));
   $stmt = $db->prepare('DELETE FROM timing WHERE user_id = ?');
   $stmt->execute(array($user_id));
-  shell_exec('sudo rm '.escapeshellarg("/var/www/html/{$symlink}"));
   header('Location: /');
   exit();
 }

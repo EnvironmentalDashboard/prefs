@@ -59,7 +59,7 @@ require 'includes/check-signed-in.php';
               <li><code>start</code>: set the minimium y-axis value (integer)</li>
               <li><code>time_frame</code>: could be hour, day, week (string)</li>
               <li><code>cleveland</code>: use special background (boolean)</li>
-              <li><code>colorn</code>: color for chart of nth meter, as a hex string or recognized color name (string)</li>
+              <li><code>colorn</code>: color for chart of nth meter (0-based), as a hex string or recognized color name (string)</li>
             </ul>
             <div style="height:50px;clear:both"></div>
 

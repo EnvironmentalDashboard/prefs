@@ -48,23 +48,18 @@ require 'includes/check-signed-in.php';
 
             <h3>Time Series</h3>
             <h5>List of variables</h5>
-            <p>These variables can be added/modified at the end of a URL to change a time series.</p>
+            <p>These parameters can be added to the end of a URL to change the time series. Most are boolean options, and should be set to a value PHP considers "truthy" (e.g. 1, true)</p>
             <ul>
-              <li>timeseriesconfig: If present, the value of this variable will be used to match a saved time series, which will be used to display a time series with the saved settings. If other variables are present in the URL, they will overwrite what is saved in the database.</li>
-              <li>webpage: If set to "notitle", the time series is placed on a blank webpage. If set to "title", the building image is hidden and only the title is shown. If not present or set to another value, both the title and building image are shown. (Only available on index version of time series)</li>
-              <li>meter_id: The id of the primary variable.</li>
-              <li>meter_id2: If present and different from the meter_id, this will be the secondary variable.</li>
-              <li>fill1: Controls whether the chart of the primary variable is filled (on/off).</li>
-              <li>fill2: Controls whether the chart of the previous time scale is filled.</li>
-              <li>fill3: Controls whether the chart of the secondary variable is filled.</li>
-              <li>dasharr1: Controls whether the chart of the primary variable is dashed (on/off).</li>
-              <li>dasharr2: Controls whether the chart of the previous time scale is dashed.</li>
-              <li>dasharr3: Controls whether the chart of the secondary variable is dashed.</li>
-              <li>color1: Controls whether the color of the primary variable is dashed.</li>
-              <li>color2: Controls whether the color of the previous time scale.</li>
-              <li>color3: Controls whether the color of the secondary variable.</li>
-              <li>start: Where to start the Y-axis from.</li>
-              <li>ticks: If present and set to "on", will draw baseload and peak ticks.</li>
+              <li><code>title_img</code>: display building image (boolean)</li>
+              <li><code>title_txt</code>: display building and meter name (boolean)</li>
+              <li><code>gauge</code>: use a speedometer gauge instead the squirrel/fish (boolean)</li>
+              <li><code>compare</code>: use a second meter instead of the typical line for calculations (boolean)</li>
+              <li><code>inverted</code>: invert the squirre/fish's reaction (boolean)</li>
+              <li><code>hide_navbar</code>: hide blue buttons at top (boolean)</li>
+              <li><code>start</code>: set the minimium y-axis value (integer)</li>
+              <li><code>time_frame</code>: could be hour, day, week (string)</li>
+              <li><code>cleveland</code>: use special background (boolean)</li>
+              <li><code>colorn</code>: color for chart of nth meter, as a hex string or recognized color name (string)</li>
             </ul>
             <div style="height:50px;clear:both"></div>
 

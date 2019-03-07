@@ -62,6 +62,14 @@ require 'includes/check-signed-in.php';
               <li><code>colorn</code>: color for chart of nth meter (0-based), as a hex string or recognized color name (string)</li>
               <li><code>hide_navbar</code>: hide buttons above charachter (boolean)</li>
             </ul>
+
+            <hr style="margin-top:20px;margin-bottom:20px">
+
+            <h3>Orb Server</h3>
+            <h5>Color Schemes</h5>
+            <p>The orb server is configured to have two (2) color schemes. Each color scheme has five levels (5), and at each level orbs "pulse" or breathe" between two (2) different colors. Colors are configured using HSB.<p>
+            <p>These colors are programmable in <code>orb-server/src/model/services/OrbEmulator.js</code> in the <code>colors</code> variable in <code>OrbEmulator.emulate()</code>.</p>
+
             <div style="height:50px;clear:both"></div>
 
           </div>

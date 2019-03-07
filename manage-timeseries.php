@@ -68,7 +68,7 @@ $org_ids = implode(',', array_column($stmt->fetchAll(), 'id'));
                   $building = $stmt->fetchColumn();
                   $info .= "{$building} {$meter_info['name']}<br>";
                 }
-                $url = "https://environmentaldashboard.org/{$symlink}/chart/?".http_build_query($http_query);
+                $url = "https://{$subdomain}.environmentaldashboard.org/chart/?".http_build_query($http_query);
                 echo "<tr><td>";
                 echo "<iframe frameborder='0' style='max-width:500px' src='{$url}'></iframe></td>";
                 echo "<td>{$info}</p><p>{$url}&title_img=on&title_txt=on</p><p><a href='{$url}&title_img=on&title_txt=on' target='_blank'>Open in new tab</a></p></td>";

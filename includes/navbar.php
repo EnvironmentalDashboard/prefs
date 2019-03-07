@@ -34,7 +34,7 @@
       <a class="dropdown-item <?php echo ($fn === 'timeseries-animations') ? 'active' : ''; ?>" href="timeseries-animations.php">Customize animations</a>
     </div>
   </li>
-  <?php } if ($symlink === 'oberlin') { ?>
+  <?php } if ($subdomain === 'oberlin') { ?>
   <li class="nav-item dropdown">
     <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Teacher resources</a>
     <div class="dropdown-menu">

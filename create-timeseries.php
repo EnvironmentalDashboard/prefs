@@ -28,7 +28,7 @@ require 'includes/check-signed-in.php';
           <h1>Save time series URL</h1>
           <hr>
           <div class="embed-responsive embed-responsive-16by9">
-            <iframe class="embed-responsive-item" src="https://environmentaldashboard.org/oberlin/chart/create?all_meters=on"></iframe>
+            <iframe class="embed-responsive-item" src="https://oberlin.environmentaldashboard.org/chart/create?all_meters=on"></iframe>
           </div>
         </div>
       </div>

@@ -3,10 +3,10 @@ error_reporting(-1);
 ini_set('display_errors', 'On');
 require '../includes/db.php';
 $stmt = $db->prepare('SELECT token FROM users WHERE slug = ?');
-$stmt->execute(array($symlink));
+$stmt->execute(array($subdomain));
 $user_token = $stmt->fetchColumn();
 if (isset($_COOKIE['token']) && $user_token !== null && $user_token === $_COOKIE['token']) {
-  header("Location: https://environmentaldashboard.org/{$symlink}/prefs/docs");
+  header("Location: https://{$subdomain}.environmentaldashboard.org/prefs/docs");
 }
 if (isset($_POST['pass']) && isset($_POST['org'])) {
   $stmt = $db->prepare('SELECT password, token FROM users WHERE slug = ?');
@@ -31,7 +31,7 @@ if (isset($_POST['pass']) && isset($_POST['org'])) {
 }
 
 $stmt = $db->prepare('SELECT COUNT(*) FROM users WHERE password IS NULL AND slug = ?');
-$stmt->execute(array($symlink));
+$stmt->execute(array($subdomain));
 if ($stmt->fetchColumn() === '0') {
   $msg1 = 'Please sign in';
   $msg2 = 'Sign in';
@@ -102,7 +102,7 @@ select {
         <label for="inputOrg" class="sr-only"></label>
         <select id="inputOrg" name="org" class="form-control">
           <?php foreach ($db->query('SELECT name, slug FROM users ORDER BY name ASC') as $row) {
-            if ($symlink === $row['slug']) {
+            if ($subdomain === $row['slug']) {
               echo "<option value='{$row['slug']}' selected>{$row['name']}</option>";
             } else {
               echo "<option value='{$row['slug']}'>{$row['name']}</option>";

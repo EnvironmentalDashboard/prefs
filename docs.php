@@ -26,12 +26,12 @@ require 'includes/check-signed-in.php';
       <div class="container">
         <div class="row">
           <div class="col-xs-12">
-            <h1>Documentation <small class="text-muted">for <?php echo ucwords(explode('/', $_SERVER['REQUEST_URI'])[1]); ?></small></h1>
+            <h1>Documentation</h1>
             <p>Mostly random bits of information about each project in the panel</p>
             <hr>
 
             <h3>Meters</h3>
-            <p>Rather than query the BuildingOS API for each page load, ED web apps use data that are stored in a database. Live (i.e. roughly minute) resolution data is stored for 2 hours, quarter-hour for 2 weeks, hour for 2 months, month for 2 years. Data are constantly updated by scripts that run in the background. <del>The scripts can also be run on the <a href="meters">meters</a> page to verify a meters data or relative value calculation.</del></p>
+            <p>Rather than query the BuildingOS API for each page load, ED web apps use cached data that are stored in a database.  Live (i.e. roughly minute), quarter-hour, and hour resolutions are collected.</p>
             <h5>Relative value</h5>
             <p>A meters relative value is updated every time new live-resolution data becomes available. The calculation of the relative value is where the current value falls in an ordered list of historical data from the current hour. For example, if the ordered list of historical data is <code>62.5, 63, 65, 66, 66.5, 70</code> and the current reading is 64, the relative value would be 2/7 (the index of the current value in the sorted list divided by the number of items in the list) or 28%.</p>
             <p>The historical data used in the calculation can be customized by grouping days together. Only data recorded on a day in the same group as the current day is included in the calculation. Furthermore, each group of days can look back a number of data points (hour res is used, so 1 data point corresponds to 1 hour) <del>or a string that will be parsed by <a href="http://php.net/manual/en/function.strtotime.php">PHPs strtotime</a> function. Thus, valid inputs could be a fixed date e.g. "August 12, 2017" or a relative amount of time e.g. "-2 weeks".</del></p>
@@ -60,6 +60,7 @@ require 'includes/check-signed-in.php';
               <li><code>time_frame</code>: could be hour, day, week (string)</li>
               <li><code>cleveland</code>: use special background (boolean)</li>
               <li><code>colorn</code>: color for chart of nth meter (0-based), as a hex string or recognized color name (string)</li>
+              <li><code>hide_navbar</code>: hide buttons above charachter (boolean)</li>
             </ul>
             <div style="height:50px;clear:both"></div>
 

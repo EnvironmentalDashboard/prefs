@@ -485,6 +485,9 @@ $javascript = ob_get_clean();
         data: form.serialize(),
         success: function( response ) {
           $('#radios').prepend(response);
+        },
+        error: function (xhr, status, error) {
+          console.log(xhr, status, error);
         }
       } );
     });
